@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hồ sơ người dùng | Trọ Tốt ICTU</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=Bricolage+Grotesque:wght@500;700;800&family=Orbitron:wght@500;700&display=swap" rel="stylesheet">
+    <script>
+        (function () {
+            try {
+                const savedTheme = localStorage.getItem("trototn-theme");
+                const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+                document.documentElement.dataset.theme = savedTheme || systemTheme;
+            } catch (error) {
+                document.documentElement.dataset.theme = "dark";
+            }
+        }());
+    </script>
+    <link rel="stylesheet" href="/styles.css?v=mono1">
+</head>
+<body class="auth-page">
+<div class="auth-shell">
+    <header class="topbar">
+        <div><h1>Trọ Tốt ICTU</h1></div>
+        <div class="topbar-actions">
+            <a class="ghost-button link-button" href="/index.html">Về trang chủ</a>
+        </div>
+    </header>
+
+    <section class="auth-card panel">
+        <div class="auth-card-header">
+            <p class="eyebrow">Hồ sơ</p>
+            <h2 id="pageTitle">Thông tin tài khoản</h2>
+        </div>
+
+        <form id="profileForm" class="stack-form auth-form">
+            <div class="field-group">
+                <label class="field-label" for="fullName">Họ và tên</label>
+                <input id="fullName" name="fullName" placeholder="Họ và tên" required disabled class="profile-input">
+                <p class="field-hint">Tên hiển thị trên hồ sơ và hợp đồng thuê.</p>
+            </div>
+            <div class="field-group">
+                <label class="field-label" for="email">Email</label>
+                <input id="email" name="email" type="email" placeholder="Email" disabled>
+                <p class="field-hint">Email dùng để đăng nhập và nhận thông báo.</p>
+            </div>
+            <div class="field-group">
+                <label class="field-label" for="phone">Số điện thoại</label>
+                <input id="phone" name="phone" placeholder="Số điện thoại" disabled class="profile-input">
+                <p class="field-hint">Số liên hệ khi xác nhận đặt phòng.</p>
+            </div>
+            <div class="field-group">
+                <label class="field-label" for="address">Địa chỉ</label>
+                <input id="address" name="address" placeholder="Địa chỉ" disabled class="profile-input">
+                <p class="field-hint">Địa chỉ thường trú hoặc nơi nhận hóa đơn.</p>
+            </div>
+            <div class="field-group">
+                <label class="field-label" for="role">Vai trò</label>
+                <input id="role" name="role" placeholder="Vai trò" disabled class="profile-input">
+                <p class="field-hint">Vai trò tài khoản trong hệ thống.</p>
+            </div>
+            <div class="form-actions" id="actionButtons" style="display: flex; gap: 8px;">
+                <button id="editBtn" class="ghost-button hidden" type="button">Chỉnh sửa</button>
+                <button id="saveBtn" class="primary-button hidden" type="submit">Lưu thay đổi</button>
+                <button id="cancelBtn" class="ghost-button hidden" type="button">Hủy</button>
+            </div>
+        </form>
+    </section>
+
+    <section id="passwordSection" class="auth-card panel hidden" style="margin-top: 24px;">
+        <div class="auth-card-header">
+            <p class="eyebrow">Bảo mật</p>
+            <h2>Đổi mật khẩu</h2>
+        </div>
+        <form id="passwordForm" class="stack-form auth-form">
+            <div class="field-group">
+                <label class="field-label" for="oldPassword">Mật khẩu hiện tại</label>
+                <input id="oldPassword" name="oldPassword" type="password" required>
+            </div>
+            <div class="field-group">
+                <label class="field-label" for="newPassword">Mật khẩu mới</label>
+                <input id="newPassword" name="newPassword" type="password" required minlength="6">
+            </div>
+            <div class="field-group">
+                <label class="field-label" for="confirmPassword">Xác nhận mật khẩu mới</label>
+                <input id="confirmPassword" name="confirmPassword" type="password" required minlength="6">
+            </div>
+            <button class="primary-button" type="submit">Đổi mật khẩu</button>
+        </form>
+    </section>
+</div>
+
+<div id="toast" class="toast hidden"></div>
+<script src="/theme.js"></script>
+<script src="/profile.js"></script>
+</body>
+</html>

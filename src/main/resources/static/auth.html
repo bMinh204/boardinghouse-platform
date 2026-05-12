@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TroTotTNU | Đăng nhập và đăng ký</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=Bricolage+Grotesque:wght@500;700;800&family=Orbitron:wght@500;700&display=swap" rel="stylesheet">
+    <script>
+        (function () {
+            try {
+                const savedTheme = localStorage.getItem("trototn-theme");
+                const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+                document.documentElement.dataset.theme = savedTheme || systemTheme;
+            } catch (error) {
+                document.documentElement.dataset.theme = "dark";
+            }
+        }());
+    </script>
+    <link rel="stylesheet" href="/styles.css?v=mono1">
+</head>
+<body class="auth-page">
+<div class="auth-shell">
+    <section class="auth-hero panel">
+        <p class="eyebrow">Trang tài khoản</p>
+        <h1>Đăng nhập hoặc tạo tài khoản để bắt đầu sử dụng hệ thống phòng trọ.</h1>
+        <p class="hero-description">
+            Trang này chỉ tập trung cho xác thực. Sau khi đăng nhập thành công, bạn sẽ được đưa về trang danh sách
+            phòng trọ và bộ lọc.
+        </p>
+        <div class="demo-card">
+            <h3>Bạn có thể đăng ký với 2 vai trò</h3>
+            <ul class="feature-list">
+                <li>Chủ trọ: đăng tin, cập nhật phòng, xử lý yêu cầu thuê</li>
+                <li>Người thuê: tìm phòng, lưu yêu thích, gửi yêu cầu thuê</li>
+            </ul>
+        </div>
+        <div class="auth-actions">
+            <button id="themeToggle" class="ghost-button theme-toggle" type="button" data-theme-toggle aria-label="Chuyen sang giao dien sang">
+                <span class="theme-toggle-track" aria-hidden="true"><span class="theme-toggle-thumb"></span></span>
+                <span data-theme-label>Giao dien sang</span>
+            </button>
+            <a class="ghost-button link-button" href="/index.html">Về trang phòng trọ</a>
+        </div>
+    </section>
+
+    <section class="auth-card panel">
+        <div class="auth-card-header">
+            <p class="eyebrow">Tài khoản</p>
+            <h2>Đăng nhập / Đăng ký</h2>
+        </div>
+
+        <div class="auth-switch">
+            <button type="button" class="auth-tab active" data-tab="login">Đăng nhập</button>
+            <button type="button" class="auth-tab" data-tab="register">Đăng ký</button>
+        </div>
+
+        <form id="loginForm" class="stack-form auth-form">
+            <h3>Đăng nhập</h3>
+            <input name="email" type="email" placeholder="Email" required>
+            <input name="password" type="password" placeholder="Mật khẩu" required>
+            <div style="text-align: right; width: 100%;">
+                <button type="button" class="text-button" data-action="show-forgot-password" style="font-size: 14px; background: none; border: none; color: inherit; cursor: pointer; text-decoration: underline; opacity: 0.8;">Quên mật khẩu?</button>
+            </div>
+            <button class="primary-button" type="submit">Đăng nhập</button>
+        </form>
+
+        <form id="registerForm" class="stack-form auth-form hidden">
+            <h3>Tạo tài khoản mới</h3>
+            <div class="field-group">
+                <label class="field-label" for="regFullName">Họ và tên</label>
+                <input id="regFullName" name="fullName" placeholder="Họ và tên" required>
+                <p class="field-hint">Tên hiển thị trên hồ sơ và hợp đồng thuê.</p>
+            </div>
+            <div class="field-group">
+                <label class="field-label" for="regEmail">Email</label>
+                <input id="regEmail" name="email" type="email" placeholder="Email" required>
+                <p class="field-hint">Email dùng để đăng nhập và nhận thông báo.</p>
+            </div>
+            <div class="field-group">
+                <label class="field-label" for="regPassword">Mật khẩu</label>
+                <input id="regPassword" name="password" type="password" placeholder="Mật khẩu" required>
+            </div>
+            <div class="field-group">
+                <label class="field-label" for="regPhone">Số điện thoại</label>
+                <input id="regPhone" name="phone" placeholder="Số điện thoại">
+            </div>
+            <div class="field-group">
+                <label class="field-label" for="regAddress">Địa chỉ</label>
+                <input id="regAddress" name="address" placeholder="Địa chỉ">
+            </div>
+            <label class="role-select">
+                <span>Loại tài khoản</span>
+                <select name="role">
+                    <option value="TENANT">Người thuê</option>
+                    <option value="LANDLORD">Chủ trọ</option>
+                </select>
+            </label>
+            <button class="primary-button" type="submit">Đăng ký tài khoản</button>
+        </form>
+
+        <form id="activationOtpForm" class="stack-form auth-form hidden">
+            <h3>Kich hoat tai khoan</h3>
+            <p class="field-hint">Nhap ma OTP 6 so da gui ve email cua ban.</p>
+            <input name="email" type="email" placeholder="Email" required>
+            <input name="otp" inputmode="numeric" maxlength="6" placeholder="Ma OTP" required>
+            <button class="primary-button" type="submit">Xac nhan OTP</button>
+            <button class="ghost-button" type="button" data-action="back-to-login">Quay lai dang nhap</button>
+        </form>
+
+        <form id="forgotPasswordForm" class="stack-form auth-form hidden">
+            <h3>Khôi phục mật khẩu</h3>
+            <p class="field-hint">Nhập email của bạn để nhận liên kết đặt lại mật khẩu.</p>
+            <input name="email" type="email" placeholder="Email đã đăng ký" required>
+            <button class="primary-button" type="submit">Gửi yêu cầu</button>
+            <button class="ghost-button" type="button" data-action="back-to-login">Quay lại đăng nhập</button>
+        </form>
+
+        <form id="resetOtpForm" class="stack-form auth-form hidden">
+            <h3>Dat lai mat khau bang OTP</h3>
+            <p class="field-hint">Nhap OTP 6 so da gui ve email va mat khau moi.</p>
+            <input name="email" type="email" placeholder="Email" required>
+            <input name="otp" inputmode="numeric" maxlength="6" placeholder="Ma OTP" required>
+            <input name="newPassword" type="password" placeholder="Mat khau moi" required>
+            <input name="confirmPassword" type="password" placeholder="Xac nhan mat khau moi" required>
+            <button class="primary-button" type="submit">Doi mat khau</button>
+            <button class="ghost-button" type="button" data-action="back-to-login">Quay lai dang nhap</button>
+        </form>
+
+    </section>
+</div>
+
+<div id="toast" class="toast hidden"></div>
+<script src="/theme.js?v=1"></script>
+<script src="/auth.js?v=3"></script>
+
+</body>
+</html>

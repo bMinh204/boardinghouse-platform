@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trọ Tốt ICTU | Tìm phòng trọ gần Đại học Thái Nguyên</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=Bricolage+Grotesque:wght@500;700;800&family=Orbitron:wght@500;700&display=swap" rel="stylesheet">
+    <script>
+        (function () {
+            try {
+                const savedTheme = localStorage.getItem("trototn-theme");
+                const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+                document.documentElement.dataset.theme = savedTheme || systemTheme;
+            } catch (error) {
+                document.documentElement.dataset.theme = "dark";
+            }
+        }());
+    </script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-geosearch@3.0.0/dist/geosearch.css" />
+    <link rel="stylesheet" href="/styles.css?v=mono1">
+</head>
+<body>
+<div class="page-shell">
+    <header class="topbar">
+        <div>
+            
+            <h1>Trọ Tốt ICTU</h1>
+        </div>
+        <div class="topbar-actions">
+            <button id="themeToggle" class="ghost-button theme-toggle" type="button" data-theme-toggle aria-label="Chuyen sang giao dien sang">
+                <span class="theme-toggle-track" aria-hidden="true"><span class="theme-toggle-thumb"></span></span>
+                <span data-theme-label>Giao dien sang</span>
+            </button>
+            <form class="nav-form" action="/auth.html" method="get">
+                <button class="ghost-button link-button" type="submit" id="authLink">Đăng nhập / Đăng ký</button>
+            </form>
+            <div id="userBadge" class="user-badge">Khách tham quan</div>
+            <button id="logoutBtn" class="ghost-button hidden" type="button">Đăng xuất</button>
+        </div>
+    </header>
+
+    <section class="hero panel hero-listing">
+        <div class="hero-copy">
+            <p class="eyebrow">Trang phòng trọ</p>
+            <h2>Một trang riêng để xem phòng trọ, lọc theo nhu cầu và mở chi tiết từng phòng.</h2>
+            <p class="hero-description">
+                Giao diện này tập trung vào bộ lọc, danh sách phòng, xem ảnh, bản đồ, giá, tiện nghi và thông tin
+                cần thiết. Đăng nhập / đăng ký được tách sang trang riêng để luồng sử dụng gọn hơn.
+            </p>
+            <div class="stat-row">
+                <div class="stat-pill"><span>Phòng đang hiển thị</span><strong id="statRooms">0</strong></div>
+                <div class="stat-pill"><span>Phòng chờ duyệt</span><strong id="statPending">0</strong></div>
+                <div class="stat-pill"><span>Chatbot gợi ý</span><strong>Sẵn sàng</strong></div>
+            </div>
+            <div class="hero-actions">
+                <form class="nav-form" action="/auth.html" method="get">
+                    <button id="authHeroLink" class="primary-button link-button" type="submit">Đăng nhập / Đăng ký</button>
+                </form>
+                <a class="ghost-button link-button" href="#roomSection">Xem danh sách phòng</a>
+            </div>
+        </div>
+        <div class="hero-side">
+            <div class="demo-card">
+                <h3>Bộ lọc nhanh</h3>
+                <p>Lọc theo giá, khu vực, diện tích và tiện nghi. Bấm vào từng phòng để xem chi tiết đầy đủ.</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="panel filter-panel">
+        <div class="section-header">
+            <div>
+                <p class="eyebrow">Bộ lọc phòng trọ</p>
+                <h3>Tìm phòng phù hợp trong vài giây</h3>
+            </div>
+        </div>
+        <form id="searchForm" class="search-grid">
+            <input name="keyword" placeholder="Tiêu đề, nhà trọ, địa chỉ">
+            <input name="areaName" placeholder="Khu vực, ví dụ: Gần ĐH CNTT Thái Nguyên">
+            <input name="minPrice" type="number" min="0" placeholder="Giá từ">
+            <input name="maxPrice" type="number" min="0" placeholder="Giá đến">
+            <input name="minSize" type="number" min="0" step="0.5" placeholder="Diện tích từ">
+            <input name="maxSize" type="number" min="0" step="0.5" placeholder="Diện tích đến">
+            <input name="amenity" placeholder="Tiện nghi, ví dụ: wifi">
+            <button class="primary-button" type="submit">Lọc phòng</button>
+        </form>
+    </section>
+
+    <main class="workspace listing-workspace">
+        <div class="main-column">
+            <section class="panel" id="roomSection">
+                <div class="section-header">
+                    <div>
+                        <p class="eyebrow">Danh sách phòng</p>
+                        <h3>Thông tin phòng trọ đang hiển thị</h3>
+                    </div>
+                    <span id="resultCount" class="muted-text">0 kết quả</span>
+                </div>
+                <div id="roomList" class="card-grid"></div>
+                <div id="pagination" style="display: flex; gap: 8px; justify-content: center; margin-top: 16px; flex-wrap: wrap;" class="hidden"></div>
+            </section>
+
+            <section id="tenantSection" class="panel hidden">
+                <div class="section-header">
+                    <div>
+                        <p class="eyebrow">Người thuê</p>
+                        <h3>Yêu thích và yêu cầu thuê</h3>
+                    </div>
+                </div>
+                <div class="split-two">
+                    <div>
+                        <h4>Phòng đã lưu</h4>
+                        <div id="favoriteList" class="stack-list"></div>
+                    </div>
+                    <div>
+                        <h4>Yêu cầu thuê của tôi</h4>
+                        <div id="tenantRentalList" class="stack-list"></div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="landlordSection" class="panel hidden">
+                <div class="section-header">
+                    <div>
+                        <p class="eyebrow">Chủ trọ</p>
+                        <h3>Quản lý phòng và thống kê</h3>
+                    </div>
+                </div>
+                <div id="landlordStats" class="stat-grid"></div>
+                <form id="roomForm" class="form-grid">
+                    <input name="propertyName" placeholder="Tên nhà trọ" required>
+                    <input name="title" placeholder="Tiêu đề phòng" required>
+                    <input name="address" placeholder="Địa chỉ chi tiết hoặc link Google Maps" required>
+                    <input name="areaName" placeholder="Khu vực" required>
+                    <input name="price" type="number" min="0" placeholder="Giá thuê" required>
+                    <input name="size" type="text" placeholder="Diện tích (m2)" required>
+                    <input name="capacity" type="number" min="1" placeholder="Số phòng hiện tại" required>
+                    <input name="amenities" placeholder="Tiện nghi, cách nhau bởi dấu phẩy" required>
+                    <input name="featuredImage" placeholder="URL ảnh đại diện">
+                    <input name="imageUrls" placeholder="Danh sách ảnh (URL), cách nhau bởi dấu phẩy">
+                    <label class="file-label">Hoặc chọn ảnh từ máy (nhiều ảnh)
+                        <input id="imageFiles" name="imageFiles" type="file" accept="image/*" multiple>
+                    </label>
+                    <input name="mapQuery" placeholder="Từ khóa bản đồ / địa điểm (nếu không nhập link Google Maps)">
+                    <input name="contactPhone" placeholder="Số điện thoại liên hệ" required>
+                    <input name="availableFrom" type="date" required>
+                    <select name="status">
+                        <option value="AVAILABLE">Còn trống</option>
+                        <option value="OCCUPIED">Đã có người thuê</option>
+                        <option value="MAINTENANCE">Đang sửa chữa</option>
+                        <option value="EXPIRING_SOON">Sắp hết hợp đồng</option>
+                    </select>
+                    <textarea name="description" placeholder="Mô tả phòng, nội thất, dịch vụ..." required></textarea>
+                    <textarea name="contractNote" placeholder="Ghi chú hợp đồng, cọc, điều kiện..."></textarea>
+                    <div class="form-actions">
+                        <button class="primary-button" type="submit" id="roomSubmitBtn">Đăng tin / Cập nhật</button>
+                        <button class="ghost-button" type="button" id="roomResetBtn">Làm mới form</button>
+                    </div>
+                </form>
+                <div id="myRoomList" class="card-grid"></div>
+                <div class="split-two">
+                    <div>
+                        <h4>Hội thoại gần đây</h4>
+                        <div id="landlordConversationList" class="stack-list"></div>
+                    </div>
+                    <div>
+                        <h4>Yêu cầu thuê cần xử lý</h4>
+                        <div id="landlordRentalList" class="stack-list"></div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="adminSection" class="panel hidden">
+                <div class="section-header">
+                    <div>
+                        <p class="eyebrow">Admin</p>
+                        <h3>Kiểm duyệt nội dung và báo cáo</h3>
+                    </div>
+                    <button id="backupBtn" class="primary-button" type="button">Tải backup JSON</button>
+                </div>
+                <div id="adminStats" class="stat-grid"></div>
+                <div>
+                    <h4>Quản trị tài khoản</h4>
+                    <div id="userList" class="stack-list"></div>
+                </div>
+                <div>
+                    <h4>Chi tiết tài khoản</h4>
+                    <div id="adminUserDetail" class="stack-list compact"></div>
+                </div>
+                <div class="split-two">
+                    <div>
+                        <h4>Tin đăng chờ duyệt</h4>
+                        <div id="pendingRoomList" class="stack-list"></div>
+                    </div>
+                    <div>
+                        <h4>Yêu cầu thuê gần đây</h4>
+                        <div id="adminRentalList" class="stack-list"></div>
+                    </div>
+                </div>
+                <div class="split-two">
+                    <div>
+                        <h4>Báo cáo theo tháng</h4>
+                        <div id="monthlyReport" class="stack-list compact"></div>
+                    </div>
+                    <div>
+                        <h4>Báo cáo theo quý / năm</h4>
+                        <div id="quarterYearReport" class="stack-list compact"></div>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <aside class="side-column">
+            <section id="detailPanel" class="panel">
+                <div class="section-header">
+                    <div>
+                        <p class="eyebrow">Chi tiết phòng</p>
+                        <h3>Mở một phòng để xem đầy đủ thông tin</h3>
+                    </div>
+                </div>
+                <div id="detailContent" class="empty-state">Ảnh, giá, tiện nghi, đánh giá và bản đồ của phòng sẽ hiện tại đây.</div>
+            </section>
+
+            <section id="conversationPanel" class="panel hidden">
+                <div class="section-header">
+                    <div>
+                        <p class="eyebrow">Chat trực tuyến</p>
+                        <h3>Cuộc trò chuyện</h3>
+                    </div>
+                </div>
+                <div id="conversationList" class="stack-list compact"></div>
+                <div id="messageThread" class="message-thread empty-state">Chọn cuộc trò chuyện để xem nội dung.</div>
+                <form id="messageForm" class="message-form hidden">
+                    <input id="messageInput" name="content" placeholder="Nhập nội dung nhắn tin..." required>
+                    <button class="primary-button" type="submit">Gửi</button>
+                </form>
+            </section>
+
+            <section class="panel">
+                <div class="section-header">
+                    <div>
+                        <p class="eyebrow">AI Chatbot</p>
+                        <h3>Trợ lý gợi ý phòng nhanh</h3>
+                    </div>
+                </div>
+                <form id="chatbotForm" class="stack-form">
+                    <textarea name="prompt" placeholder="Ví dụ: Tìm phòng gần ICTU dưới 1.8 triệu, có wifi và bàn học" required></textarea>
+                    <button class="primary-button" type="submit">Hỏi chatbot</button>
+                </form>
+                <div id="chatbotReply" class="empty-state">Chatbot sẽ phân tích ngân sách, khu vực và tiện nghi để gợi ý phòng.</div>
+            </section>
+        </aside>
+    </main>
+</div>
+
+<div id="toast" class="toast hidden"></div>
+<script>
+    (function () {
+        function goToAuth(event) {
+            const target = event.target.closest("#authLink, #authHeroLink");
+            if (!target) return;
+            event.preventDefault();
+            event.stopPropagation();
+            const action = target.closest("form")?.getAttribute("action") || "/auth.html";
+            window.location.href = new URL(action, window.location.origin).href;
+        }
+        document.addEventListener("pointerdown", goToAuth, true);
+        document.addEventListener("click", goToAuth, true);
+    }());
+</script>
+<script src="/theme.js?v=1"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="https://unpkg.com/leaflet-geosearch@3.0.0/dist/geosearch.umd.js"></script>
+<script src="/browse.js?v=11"></script>
+</body>
+</html>
