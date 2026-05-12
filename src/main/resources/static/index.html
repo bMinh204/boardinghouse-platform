@@ -248,7 +248,10 @@
                 </div>
                 <form id="chatbotForm" class="stack-form">
                     <textarea name="prompt" placeholder="Ví dụ: Tìm phòng gần ICTU dưới 1.8 triệu, có wifi và bàn học" required></textarea>
-                    <button class="primary-button" type="submit">Hỏi chatbot</button>
+                    <div class="form-actions">
+                        <button class="primary-button" type="submit">Hỏi chatbot</button>
+                        <button id="chatbotClearBtn" class="ghost-button" type="button">Xóa</button>
+                    </div>
                 </form>
                 <div id="chatbotReply" class="empty-state">Chatbot sẽ phân tích ngân sách, khu vực và tiện nghi để gợi ý phòng.</div>
             </section>
@@ -274,6 +277,6 @@
 <script src="/theme.js?v=1"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script src="https://unpkg.com/leaflet-geosearch@3.0.0/dist/geosearch.umd.js"></script>
-<script src="/browse.js?v=11"></script>
+<script src="/browse.js?v=12"></script>
 </body>
 </html>

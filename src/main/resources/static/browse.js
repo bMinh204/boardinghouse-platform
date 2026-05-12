@@ -85,6 +85,8 @@ class BrowseView {
             messageThread: document.getElementById("messageThread"),
             messageForm: document.getElementById("messageForm"),
             messageInput: document.getElementById("messageInput"),
+            chatbotForm: document.getElementById("chatbotForm"),
+            chatbotClearBtn: document.getElementById("chatbotClearBtn"),
             chatbotReply: document.getElementById("chatbotReply"),
             roomSubmitBtn: document.getElementById("roomSubmitBtn"),
             roomResetBtn: document.getElementById("roomResetBtn"),
@@ -102,7 +104,8 @@ class BrowseView {
         this.refs.roomForm.addEventListener("submit", e => controller.onRoomSubmit(e));
         this.refs.roomResetBtn.addEventListener("click", e => controller.resetRoomForm());
         this.refs.messageForm.addEventListener("submit", e => controller.onSendMessage(e));
-        document.getElementById("chatbotForm").addEventListener("submit", e => controller.onAskChatbot(e));
+        this.refs.chatbotForm.addEventListener("submit", e => controller.onAskChatbot(e));
+        this.refs.chatbotClearBtn.addEventListener("click", e => controller.onClearChatbot(e));
         document.getElementById("backupBtn").addEventListener("click", e => controller.onBackup(e));
         document.addEventListener("click", e => controller.onDocumentClick(e));
         document.addEventListener("submit", e => controller.onDynamicSubmit(e));
@@ -354,8 +357,10 @@ class BrowseView {
     renderChatbot(state) {
         if (!state.chatbot) {
             this.refs.chatbotReply.innerHTML = `Chatbot sẽ phân tích ngân sách, khu vực và tiện nghi để gợi ý phòng.`;
+            this.refs.chatbotReply.classList.add("empty-state");
             return;
         }
+        this.refs.chatbotReply.classList.remove("empty-state");
         const suggestions = state.chatbot.suggestions?.length
             ? `<div class="stack-list">${state.chatbot.suggestions.map(r => this.stackRoomItem(r)).join("")}</div>` : "";
         this.refs.chatbotReply.innerHTML = `
@@ -1026,6 +1031,14 @@ class BrowseController {
         } catch (error) {
             this.view.showToast(error.message, true);
         }
+    }
+
+    onClearChatbot(event) {
+        event.preventDefault();
+        this.model.state.chatbot = null;
+        this.view.refs.chatbotForm.reset();
+        this.view.renderChatbot(this.model.state);
+        this.view.refs.chatbotForm.prompt.focus();
     }
 
     async onBackup(event) {
