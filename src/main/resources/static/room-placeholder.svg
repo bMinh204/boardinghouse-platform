@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 600" role="img" aria-label="Ảnh phòng đang cập nhật">
+  <rect width="900" height="600" fill="#101010"/>
+  <rect x="36" y="36" width="828" height="528" rx="28" fill="#171717" stroke="#2d2d2d" stroke-width="3"/>
+  <path d="M210 365h480v70H210zM265 290h370v75H265zM320 215h260v75H320z" fill="#2a2a2a"/>
+  <path d="M450 150l280 180v105h-70v-70H240v70h-70V330z" fill="#3a3a3a"/>
+  <circle cx="450" cy="310" r="38" fill="#d8d8d8"/>
+  <text x="450" y="505" text-anchor="middle" font-family="Arial, sans-serif" font-size="38" font-weight="700" fill="#d8d8d8">Ảnh phòng đang cập nhật</text>
+</svg>

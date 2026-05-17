@@ -426,7 +426,7 @@ class BrowseView {
         const addressText = displayRoomAddress(room);
 
         this.refs.detailContent.innerHTML = `
-            <div class="detail-hero"><img src="${escapeHtml(room.featuredImage)}" alt="${escapeHtml(room.title)}"></div>
+            <div class="detail-hero"><img src="${escapeHtml(imageSrc(room.featuredImage))}" alt="${escapeHtml(room.title)}" onerror="${imageErrorFallback()}"></div>
             <div class="detail-block">
                 <div class="price-line">
                     <h3>${escapeHtml(room.title)}</h3>
@@ -444,7 +444,7 @@ class BrowseView {
                 <p>${escapeHtml(room.description)}</p>
                 <div class="tag-row">${(room.amenities ?? []).map(amenity => `<span class="tag">${escapeHtml(amenity)}</span>`).join("")}</div>
             </div>
-            <div class="gallery">${(room.imageUrls ?? []).map(url => `<img src="${escapeHtml(url)}" alt="Ảnh phòng">`).join("")}</div>
+            <div class="gallery">${(room.imageUrls ?? []).map(url => `<img src="${escapeHtml(imageSrc(url))}" alt="Ảnh phòng" onerror="${imageErrorFallback()}">`).join("")}</div>
             <div class="detail-block">
                 <div class="stack-item">
                     <p><strong>Chủ trọ:</strong> ${escapeHtml(room.ownerName)}</p>
@@ -520,7 +520,7 @@ class BrowseView {
     roomCard(room, state) {
         return `
             <article class="room-card">
-                <img src="${escapeHtml(room.featuredImage)}" alt="${escapeHtml(room.title)}">
+                <img src="${escapeHtml(imageSrc(room.featuredImage))}" alt="${escapeHtml(room.title)}" onerror="${imageErrorFallback()}">
                 <div class="room-body">
                     <div class="price-line">
                         <strong>${escapeHtml(room.title)}</strong>
@@ -549,7 +549,7 @@ class BrowseView {
     landlordRoomCard(room) {
         return `
             <article class="room-card">
-                <img src="${escapeHtml(room.featuredImage)}" alt="${escapeHtml(room.title)}">
+                <img src="${escapeHtml(imageSrc(room.featuredImage))}" alt="${escapeHtml(room.title)}" onerror="${imageErrorFallback()}">
                 <div class="room-body">
                     <div class="price-line">
                         <strong>${escapeHtml(room.title)}</strong>
@@ -1345,6 +1345,15 @@ function escapeHtml(value) {
         .replaceAll(">", "&gt;")
         .replaceAll("\"", "&quot;")
         .replaceAll("'", "&#39;");
+}
+
+function imageSrc(value) {
+    const src = String(value ?? "").trim();
+    return src || "/room-placeholder.svg";
+}
+
+function imageErrorFallback() {
+    return "this.onerror=null;this.src='/room-placeholder.svg';";
 }
 
 function normalizeMapValue(value) {
