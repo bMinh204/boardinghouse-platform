@@ -20,7 +20,7 @@
     </script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet-geosearch@3.0.0/dist/geosearch.css" />
-    <link rel="stylesheet" href="/styles.css?v=mono1">
+    <link rel="stylesheet" href="/styles.css?v=hero2">
 </head>
 <body>
 <div class="page-shell">
@@ -46,29 +46,100 @@
     </header>
 
     <section class="hero panel hero-listing">
+        <div class="hero-orb hero-orb-one" aria-hidden="true"></div>
+        <div class="hero-orb hero-orb-two" aria-hidden="true"></div>
         <div class="hero-copy">
-            <p class="eyebrow">Trang phòng trọ</p>
-            <h2>Một trang riêng để xem phòng trọ, lọc theo nhu cầu và mở chi tiết từng phòng.</h2>
+            <p class="eyebrow">Trang phòng trọ thông minh</p>
+            <h2>Tìm phòng trọ gần ICTU nhanh hơn, rõ hơn, ít nhiễu hơn.</h2>
             <p class="hero-description">
-                Giao diện này tập trung vào bộ lọc, danh sách phòng, xem ảnh, bản đồ, giá, tiện nghi và thông tin
-                cần thiết. Đăng nhập / đăng ký được tách sang trang riêng để luồng sử dụng gọn hơn.
+                Lọc theo ngân sách, khu vực, tiện nghi và xem ngay ảnh, bản đồ, giá thuê, trạng thái phòng trong
+                một luồng duyệt phòng gọn gàng cho sinh viên và chủ trọ.
             </p>
             <div class="stat-row">
-                <div class="stat-pill"><span>Phòng đang hiển thị</span><strong id="statRooms">0</strong></div>
-                <div class="stat-pill"><span>Phòng chờ duyệt</span><strong id="statPending">0</strong></div>
-                <div class="stat-pill"><span>Chatbot gợi ý</span><strong>Sẵn sàng</strong></div>
+                <div class="stat-pill">
+                    <span class="stat-icon">R</span>
+                    <span>Phòng đang hiển thị</span>
+                    <strong id="statRooms">0</strong>
+                    <small>Cập nhật theo bộ lọc</small>
+                </div>
+                <div class="stat-pill">
+                    <span class="stat-icon">M</span>
+                    <span>Phòng chờ duyệt</span>
+                    <strong id="statPending">0</strong>
+                    <small>Kiểm duyệt trước khi lên trang</small>
+                </div>
+                <div class="stat-pill">
+                    <span class="stat-icon">AI</span>
+                    <span>Chatbot gợi ý</span>
+                    <strong>Sẵn sàng</strong>
+                    <small>Gợi ý theo ngân sách và vị trí</small>
+                </div>
             </div>
             <div class="hero-actions">
+                <a class="primary-button link-button" href="#roomSection">Xem danh sách phòng</a>
                 <form class="nav-form" action="/auth.html" method="get">
-                    <button id="authHeroLink" class="primary-button link-button" type="submit">Đăng nhập / Đăng ký</button>
+                    <button id="authHeroLink" class="ghost-button link-button" type="submit">Đăng nhập / Đăng ký</button>
                 </form>
-                <a class="ghost-button link-button" href="#roomSection">Xem danh sách phòng</a>
             </div>
         </div>
         <div class="hero-side">
-            <div class="demo-card">
-                <h3>Bộ lọc nhanh</h3>
-                <p>Lọc theo giá, khu vực, diện tích và tiện nghi. Bấm vào từng phòng để xem chi tiết đầy đủ.</p>
+            <div class="hero-preview" aria-label="Preview trải nghiệm tìm phòng">
+                <div class="preview-topline">
+                    <div>
+                        <span>Live room radar</span>
+                        <strong>Gần ICTU</strong>
+                    </div>
+                    <span class="live-dot">Online</span>
+                </div>
+
+                <div class="preview-map">
+                    <div class="map-grid" aria-hidden="true"></div>
+                    <span class="map-route"></span>
+                    <span class="map-pin pin-one"></span>
+                    <span class="map-pin pin-two"></span>
+                    <span class="map-pin pin-three"></span>
+                    <div class="map-card">
+                        <span>3 phút tới trường</span>
+                        <strong>1.8tr/tháng</strong>
+                    </div>
+                </div>
+
+                <div class="featured-room-card">
+                    <div class="room-photo-stack">
+                        <div class="room-visual" role="img" aria-label="Ảnh preview phòng studio">
+                            <span class="room-window"></span>
+                            <span class="room-desk"></span>
+                            <span class="room-bed"></span>
+                        </div>
+                        <div class="photo-thumbs" aria-hidden="true">
+                            <span></span><span></span><span></span>
+                        </div>
+                    </div>
+                    <div>
+                        <p class="eyebrow">Phòng nổi bật</p>
+                        <h3>Studio mini, ban công sáng</h3>
+                        <div class="tag-row">
+                            <span class="tag">Wifi mạnh</span>
+                            <span class="tag">Gần cổng trường</span>
+                            <span class="tag">Có bếp</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="filter-chip-row" aria-label="Bộ lọc nhanh">
+                    <span>Dưới 2 triệu</span>
+                    <span>Gần ICTU</span>
+                    <span>Wifi</span>
+                    <span>Ban công</span>
+                </div>
+
+                <div class="assistant-widget">
+                    <div class="assistant-pulse" aria-hidden="true"></div>
+                    <div>
+                        <span>AI assistant</span>
+                        <strong>Tìm 5 phòng hợp ngân sách, ưu tiên an ninh và đi bộ dưới 10 phút.</strong>
+                    </div>
+                </div>
             </div>
         </div>
     </section>
