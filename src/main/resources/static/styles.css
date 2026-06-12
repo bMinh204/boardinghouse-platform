@@ -1191,14 +1191,12 @@ button:hover { transform: translateY(-1px); }
 
 .auth-page { display: grid; align-items: center; }
 .auth-shell {
-    width: min(1100px, calc(100% - 24px));
+    width: min(680px, calc(100% - 24px));
     margin: 0 auto;
     padding: 24px 0;
     display: grid;
-    grid-template-columns: 1.05fr 0.95fr;
-    gap: 14px;
 }
-.auth-hero, .auth-card { min-height: 100%; }
+.auth-card { min-height: 100%; }
 .auth-card-header { margin-bottom: 14px; }
 
 .auth-switch {
