@@ -194,7 +194,7 @@ public class RoomLayoutService {
             physicalRoom.setSection(sectionForRoom(sectionId, roomId));
         }
         if (roomTypeId != null) {
-            physicalRoom.setRoomType(roomTypeForRoom(roomTypeId, roomId));
+            physicalRoom.setRoomType(roomTypeId > 0 ? roomTypeForRoom(roomTypeId, roomId) : null);
         }
         if (roomNumber != null) {
             String normalizedNumber = required(roomNumber, "Vui lòng nhập số phòng");

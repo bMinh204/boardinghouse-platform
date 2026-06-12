@@ -2,6 +2,7 @@ class RoomDetailPage {
     constructor() {
         this.roomId = new URLSearchParams(window.location.search).get("id");
         this.room = null;
+        this.layout = null;
         this.user = null;
         this.detail = document.getElementById("roomDetail");
         this.toast = document.getElementById("toast");
@@ -56,8 +57,12 @@ class RoomDetailPage {
 
     async loadRoom() {
         try {
-            const data = await this.api(`/api/rooms/${this.roomId}`);
-            this.room = data.room;
+            const [roomData, layoutData] = await Promise.all([
+                this.api(`/api/rooms/${this.roomId}`),
+                this.api(`/api/rooms/${this.roomId}/layout`).catch(() => null)
+            ]);
+            this.room = roomData.room;
+            this.layout = layoutData?.layout || null;
             this.render();
         } catch (error) {
             this.renderError(error.message || "Không tìm thấy phòng.");
@@ -122,6 +127,8 @@ class RoomDetailPage {
                             <a class="primary-button link-button" href="/room-layout.html?id=${room.id}">Xem sơ đồ phòng</a>
                         </div>
                     </section>
+
+                    ${this.roomTypeSection()}
 
                     <section class="panel">
                         <div class="section-header">
@@ -202,6 +209,38 @@ class RoomDetailPage {
                     </section>
                 </aside>
             </div>`;
+    }
+
+    roomTypeSection() {
+        const roomTypes = this.layout?.roomTypes || [];
+        return `
+            <section class="panel">
+                <div class="section-header">
+                    <div><p class="eyebrow">Loại phòng</p><h2>Các lựa chọn trong nhà trọ</h2></div>
+                    <a class="ghost-button link-button" href="/room-layout.html?id=${this.roomId}">Xem sơ đồ</a>
+                </div>
+                ${roomTypes.length ? `
+                    <div class="room-type-grid">
+                        ${roomTypes.map(type => `
+                            <article class="room-type-card">
+                                <div class="room-type-card-head">
+                                    <div>
+                                        <strong>${escapeHtml(type.name)}</strong>
+                                        <span>${displayValue(type.size)} m² · ${displayValue(type.capacity)} người</span>
+                                    </div>
+                                    ${type.price ? `<span class="price-chip">${formatMoney(type.price)}/tháng</span>` : ""}
+                                </div>
+                                <div class="tag-row">
+                                    <span class="muted-badge">${displayValue(type.availableRooms, 0)}/${displayValue(type.totalRooms, 0)} phòng trống</span>
+                                    ${(type.amenities || []).slice(0, 4).map(item => `<span class="muted-badge">${escapeHtml(item)}</span>`).join("")}
+                                </div>
+                                ${type.description ? `<p>${escapeHtml(type.description)}</p>` : ""}
+                            </article>`).join("")}
+                    </div>` : `
+                    <div class="empty-state">
+                        Chủ trọ chưa cập nhật loại phòng. Bạn vẫn có thể xem sơ đồ phòng vật lý để chọn phòng còn trống.
+                    </div>`}
+            </section>`;
     }
 
     rentalForm(roomId) {

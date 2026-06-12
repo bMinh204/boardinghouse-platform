@@ -1108,6 +1108,20 @@ button:hover { transform: translateY(-1px); }
 .room-fact span { color: var(--muted); font-size: 0.82rem; }
 .room-amenity-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; }
 .room-amenity { padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--paper); font-weight: 700; }
+.room-type-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; }
+.room-type-card {
+    display: grid;
+    gap: 12px;
+    padding: 16px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    background: var(--paper);
+}
+.room-type-card-head { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
+.room-type-card-head div { display: grid; gap: 4px; }
+.room-type-card-head strong { font-size: 1.05rem; }
+.room-type-card-head span:not(.price-chip),
+.room-type-card p { margin: 0; color: var(--muted); line-height: 1.6; }
 .room-detail-map { width: 100%; height: 420px; border: 0; border-radius: var(--radius-lg); margin-top: 12px; }
 .image-lightbox {
     position: fixed;
@@ -1306,6 +1320,18 @@ button:hover { transform: translateY(-1px); }
     gap: 10px;
     align-items: end;
 }
+.room-type-admin-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    width: 100%;
+    padding: 12px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
+    background: var(--ghost-bg);
+}
+.room-type-admin-card span { color: var(--muted); font-size: 0.86rem; font-weight: 700; }
 .layout-legend { display: flex; flex-wrap: wrap; gap: 10px 18px; margin-bottom: 18px; }
 .layout-legend span { display: inline-flex; align-items: center; gap: 7px; color: var(--muted); font-weight: 700; }
 .room-status-dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
@@ -1354,6 +1380,7 @@ button:hover { transform: translateY(-1px); }
     pointer-events: none;
 }
 .physical-room strong { position: relative; z-index: 1; font-size: 1.35rem; }
+.physical-room small { position: relative; z-index: 1; font-weight: 800; color: rgba(255,255,255,0.9); }
 .physical-room > span { position: relative; z-index: 1; font-size: 0.82rem; font-weight: 700; }
 .status-available { background: #16803d; }
 .status-held { background: #c65b0a; }
@@ -1361,6 +1388,7 @@ button:hover { transform: translateY(-1px); }
 .status-expiring_soon { background: #a48200; }
 .status-maintenance { background: #526174; }
 .room-status-select,
+.room-type-select,
 .room-delete-button {
     position: relative;
     z-index: 1;
@@ -1371,7 +1399,8 @@ button:hover { transform: translateY(-1px); }
     color: #fff;
     background: rgba(0,0,0,0.22);
 }
-.room-status-select option { color: #111; background: #fff; }
+.room-status-select option,
+.room-type-select option { color: #111; background: #fff; }
 .room-delete-button { cursor: pointer; font-weight: 800; }
 .room-delete-button:hover { background: rgba(0,0,0,0.38); }
 .room-hold-button {

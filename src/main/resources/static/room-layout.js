@@ -99,11 +99,13 @@ class RoomLayoutPage {
         if (roomTypeList) {
             roomTypeList.innerHTML = layout.roomTypes?.length
                 ? layout.roomTypes.map(type => `
-                    <span class="tag">
+                    <article class="room-type-admin-card">
                         ${escapeHtml(type.name)}
                         ${type.price ? ` · ${formatMoney(type.price)}` : ""}
                         ${type.availableRooms !== undefined ? ` · ${type.availableRooms}/${type.totalRooms} trống` : ""}
-                    </span>`).join("")
+                        <button class="room-delete-button" type="button" data-action="delete-room-type"
+                            data-room-type-id="${type.id}" aria-label="Xóa loại phòng ${escapeHtml(type.name)}">Xóa</button>
+                    </article>`).join("")
                 : `<span class="muted-badge">Chưa có loại phòng. Tạo loại phòng trước khi gán cho phòng vật lý.</span>`;
         }
 
@@ -165,6 +167,9 @@ class RoomLayoutPage {
                     : ""}
                 ${holdAction}
                 ${this.canManage ? `
+                    <select class="room-type-select" data-room-id="${room.id}" aria-label="Loại phòng ${escapeHtml(room.roomNumber)}">
+                        ${roomTypeOptions(this.layout.roomTypes, room.roomType?.id)}
+                    </select>
                     <select class="room-status-select" data-room-id="${room.id}" aria-label="Trạng thái phòng ${escapeHtml(room.roomNumber)}">
                         ${statusOptions(room.status)}
                     </select>
@@ -262,14 +267,19 @@ class RoomLayoutPage {
     }
 
     async onChange(event) {
-        const select = event.target.closest(".room-status-select");
+        const select = event.target.closest(".room-status-select, .room-type-select");
         if (!select) return;
         try {
+            const payload = select.classList.contains("room-type-select")
+                ? { roomTypeId: select.value ? Number(select.value) : -1 }
+                : { status: select.value };
             await this.api(`/api/rooms/${this.roomId}/layout/physical-rooms/${select.dataset.roomId}`, {
                 method: "PATCH",
-                body: JSON.stringify({ status: select.value })
+                body: JSON.stringify(payload)
             });
-            this.showToast("Đã cập nhật trạng thái phòng.");
+            this.showToast(select.classList.contains("room-type-select")
+                ? "Đã cập nhật loại phòng."
+                : "Đã cập nhật trạng thái phòng.");
             await this.loadLayout();
         } catch (error) {
             this.showToast(error.message, true);
@@ -315,6 +325,13 @@ class RoomLayoutPage {
                     method: "DELETE"
                 });
                 this.showToast("Đã xóa khu/tầng.");
+            }
+            if (button.dataset.action === "delete-room-type") {
+                if (!window.confirm("Xóa loại phòng này? Các phòng đang gán loại này sẽ chuyển về chưa gán.")) return;
+                await this.api(`/api/rooms/${this.roomId}/layout/room-types/${button.dataset.roomTypeId}`, {
+                    method: "DELETE"
+                });
+                this.showToast("Đã xóa loại phòng.");
             }
             await this.loadLayout();
         } catch (error) {
@@ -382,7 +399,7 @@ function statusOptions(selected) {
         ${value === "HELD" ? "disabled" : ""}>${label}</option>`).join("");
 }
 
-function roomTypeOptions(roomTypes = []) {
+function roomTypeOptions(roomTypes = [], selectedId = null) {
     const options = [`<option value="">Chưa gán loại phòng</option>`];
     for (const type of roomTypes || []) {
         const meta = [
@@ -390,7 +407,7 @@ function roomTypeOptions(roomTypes = []) {
             type.size ? `${type.size} m²` : "",
             type.capacity ? `${type.capacity} người` : ""
         ].filter(Boolean).join(" · ");
-        options.push(`<option value="${type.id}">${escapeHtml(type.name)}${meta ? ` - ${escapeHtml(meta)}` : ""}</option>`);
+        options.push(`<option value="${type.id}" ${Number(selectedId) === Number(type.id) ? "selected" : ""}>${escapeHtml(type.name)}${meta ? ` - ${escapeHtml(meta)}` : ""}</option>`);
     }
     return options.join("");
 }
