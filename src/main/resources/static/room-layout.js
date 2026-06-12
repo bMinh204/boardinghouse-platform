@@ -100,11 +100,21 @@ class RoomLayoutPage {
             roomTypeList.innerHTML = layout.roomTypes?.length
                 ? layout.roomTypes.map(type => `
                     <article class="room-type-admin-card">
-                        ${escapeHtml(type.name)}
-                        ${type.price ? ` · ${formatMoney(type.price)}` : ""}
-                        ${type.availableRooms !== undefined ? ` · ${type.availableRooms}/${type.totalRooms} trống` : ""}
-                        <button class="room-delete-button" type="button" data-action="delete-room-type"
-                            data-room-type-id="${type.id}" aria-label="Xóa loại phòng ${escapeHtml(type.name)}">Xóa</button>
+                        <div>
+                            <strong>${escapeHtml(type.name)}</strong>
+                            <span>
+                                ${type.price ? `${formatMoney(type.price)} · ` : ""}
+                                ${type.size ? `${type.size} m² · ` : ""}
+                                ${type.capacity ? `${type.capacity} người · ` : ""}
+                                ${type.availableRooms ?? 0}/${type.totalRooms ?? 0} phòng trống
+                            </span>
+                        </div>
+                        <div class="card-actions compact-actions">
+                            <button class="ghost-button" type="button" data-action="edit-room-type"
+                                data-room-type-id="${type.id}">Sửa</button>
+                            <button class="room-delete-button" type="button" data-action="delete-room-type"
+                                data-room-type-id="${type.id}" aria-label="Xóa loại phòng ${escapeHtml(type.name)}">Xóa</button>
+                        </div>
                     </article>`).join("")
                 : `<span class="muted-badge">Chưa có loại phòng. Tạo loại phòng trước khi gán cho phòng vật lý.</span>`;
         }
@@ -183,7 +193,9 @@ class RoomLayoutPage {
         if (room.status === "AVAILABLE") {
             if (this.user?.role === "TENANT") {
                 return `<button class="room-hold-button" type="button" data-action="open-hold-dialog"
-                    data-room-id="${room.id}" data-room-number="${escapeHtml(room.roomNumber)}">Giữ phòng 24 giờ</button>`;
+                    data-room-id="${room.id}" data-room-number="${escapeHtml(room.roomNumber)}"
+                    data-room-type="${escapeHtml(room.roomType?.name || "")}"
+                    data-room-price="${escapeHtml(room.roomType?.price || "")}">Giữ phòng 24 giờ</button>`;
             }
             if (!this.user) {
                 const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
@@ -216,19 +228,14 @@ class RoomLayoutPage {
                 this.showToast("Đã thêm khu/tầng.");
             } else if (form.id === "roomTypeForm") {
                 const values = Object.fromEntries(new FormData(form).entries());
-                await this.api(`/api/rooms/${this.roomId}/layout/room-types`, {
-                    method: "POST",
-                    body: JSON.stringify({
-                        name: values.name,
-                        price: numberOrNull(values.price),
-                        size: numberOrNull(values.size),
-                        capacity: numberOrNull(values.capacity),
-                        amenities: splitComma(values.amenities),
-                        displayOrder: numberOrNull(values.displayOrder)
-                    })
+                const editingId = numberOrNull(values.roomTypeId);
+                await this.api(`/api/rooms/${this.roomId}/layout/room-types${editingId ? `/${editingId}` : ""}`, {
+                    method: editingId ? "PATCH" : "POST",
+                    body: JSON.stringify(roomTypePayload(values))
                 });
                 form.reset();
-                this.showToast("Da them loai phong.");
+                this.resetRoomTypeForm();
+                this.showToast(editingId ? "Đã cập nhật loại phòng." : "Đã thêm loại phòng.");
             } else if (form.matches(".add-rooms-form")) {
                 const values = Object.fromEntries(new FormData(form).entries());
                 const roomNumbers = [...new Set(values.roomNumbers.split(/[,;\n]+/)
@@ -298,7 +305,20 @@ class RoomLayoutPage {
                 form.moveInDate.min = new Date().toISOString().slice(0, 10);
                 form.moveInDate.value = form.moveInDate.min;
                 document.getElementById("holdRoomTitle").textContent = `Phòng ${button.dataset.roomNumber}`;
+                const roomType = button.dataset.roomType || "Chưa gán loại phòng";
+                const price = button.dataset.roomPrice ? formatMoney(button.dataset.roomPrice) : "Đang cập nhật giá";
+                document.getElementById("holdRoomMeta").innerHTML = `
+                    <strong>Loại phòng: ${escapeHtml(roomType)}</strong>
+                    <span>${escapeHtml(price)}</span>`;
                 dialog.showModal();
+                return;
+            }
+            if (button.dataset.action === "edit-room-type") {
+                this.fillRoomTypeForm(button.dataset.roomTypeId);
+                return;
+            }
+            if (button.dataset.action === "cancel-room-type-edit") {
+                this.resetRoomTypeForm();
                 return;
             }
             if (button.dataset.action === "close-hold-dialog") {
@@ -337,6 +357,32 @@ class RoomLayoutPage {
         } catch (error) {
             this.showToast(error.message, true);
         }
+    }
+
+    fillRoomTypeForm(roomTypeId) {
+        const type = (this.layout?.roomTypes || []).find(item => Number(item.id) === Number(roomTypeId));
+        if (!type) return;
+        const form = document.getElementById("roomTypeForm");
+        form.roomTypeId.value = type.id;
+        form.name.value = type.name || "";
+        form.price.value = type.price ?? "";
+        form.size.value = type.size ?? "";
+        form.capacity.value = type.capacity ?? "";
+        form.amenities.value = (type.amenities || []).join(", ");
+        form.displayOrder.value = type.displayOrder ?? "";
+        form.description.value = type.description || "";
+        document.getElementById("roomTypeSubmitBtn").textContent = "Cập nhật loại phòng";
+        document.getElementById("roomTypeCancelBtn").classList.remove("hidden");
+        form.scrollIntoView({ behavior: "smooth", block: "center" });
+        form.name.focus();
+    }
+
+    resetRoomTypeForm() {
+        const form = document.getElementById("roomTypeForm");
+        form.reset();
+        form.roomTypeId.value = "";
+        document.getElementById("roomTypeSubmitBtn").textContent = "Thêm loại phòng";
+        document.getElementById("roomTypeCancelBtn").classList.add("hidden");
     }
 
     async logout() {
@@ -431,6 +477,18 @@ function splitComma(value) {
         .split(",")
         .map(item => item.trim())
         .filter(Boolean);
+}
+
+function roomTypePayload(values) {
+    return {
+        name: values.name,
+        price: numberOrNull(values.price),
+        size: numberOrNull(values.size),
+        capacity: numberOrNull(values.capacity),
+        amenities: splitComma(values.amenities),
+        description: values.description || null,
+        displayOrder: numberOrNull(values.displayOrder)
+    };
 }
 
 function formatMoney(value) {

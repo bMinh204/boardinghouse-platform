@@ -18,7 +18,7 @@
             }
         }());
     </script>
-    <link rel="stylesheet" href="/styles.css?v=room-layout-types2">
+    <link rel="stylesheet" href="/styles.css?v=room-layout-types3">
 </head>
 <body>
 <div class="page-shell room-detail-page">
@@ -58,6 +58,7 @@
                 </div>
             </div>
             <form id="roomTypeForm" class="layout-section-form">
+                <input name="roomTypeId" type="hidden">
                 <label class="field-group">
                     <span class="field-label">Tên loại phòng</span>
                     <input name="name" placeholder="Ví dụ: Phòng đơn, phòng đôi, phòng có gác" required>
@@ -82,7 +83,12 @@
                     <span class="field-label">Thứ tự</span>
                     <input name="displayOrder" type="number" min="0" placeholder="Tự động">
                 </label>
-                <button class="primary-button" type="submit">Thêm loại phòng</button>
+                <label class="field-group form-wide">
+                    <span class="field-label">Mô tả loại phòng</span>
+                    <textarea name="description" placeholder="Ví dụ: Có gác, WC riêng, phù hợp 2 người..."></textarea>
+                </label>
+                <button id="roomTypeSubmitBtn" class="primary-button" type="submit">Thêm loại phòng</button>
+                <button id="roomTypeCancelBtn" class="ghost-button hidden" type="button" data-action="cancel-room-type-edit">Hủy sửa</button>
             </form>
             <div id="roomTypeList" class="tag-row"></div>
             <form id="sectionForm" class="layout-section-form">
@@ -130,6 +136,7 @@
             <button class="ghost-button" type="button" data-action="close-hold-dialog">Đóng</button>
         </div>
         <input name="physicalRoomId" type="hidden">
+        <div id="holdRoomMeta" class="hold-room-meta"></div>
         <label class="field-group">
             <span class="field-label">Ngày dự kiến vào ở</span>
             <input name="moveInDate" type="date" required>
@@ -147,6 +154,6 @@
 
 <div id="toast" class="toast hidden"></div>
 <script src="/theme.js"></script>
-<script src="/room-layout.js?v=types2"></script>
+<script src="/room-layout.js?v=types3"></script>
 </body>
 </html>

@@ -1332,6 +1332,9 @@ button:hover { transform: translateY(-1px); }
     background: var(--ghost-bg);
 }
 .room-type-admin-card span { color: var(--muted); font-size: 0.86rem; font-weight: 700; }
+.compact-actions { margin: 0; gap: 8px; }
+.compact-actions .ghost-button,
+.compact-actions .room-delete-button { width: auto; min-width: 72px; padding: 8px 10px; }
 .layout-legend { display: flex; flex-wrap: wrap; gap: 10px 18px; margin-bottom: 18px; }
 .layout-legend span { display: inline-flex; align-items: center; gap: 7px; color: var(--muted); font-weight: 700; }
 .room-status-dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
@@ -1442,6 +1445,16 @@ button:hover { transform: translateY(-1px); }
     color: var(--muted);
     line-height: 1.6;
 }
+.hold-room-meta {
+    display: grid;
+    gap: 4px;
+    padding: 12px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: var(--ghost-bg);
+}
+.hold-room-meta:empty { display: none; }
+.hold-room-meta span { color: var(--muted); font-weight: 700; }
 .form-hint { margin: 8px 0 0; color: var(--muted); font-size: 0.82rem; }
 .detail-layout-action { margin-top: 16px; }
 .form-wide { grid-column: 1 / -1; }
