@@ -1075,7 +1075,9 @@ class BrowseController {
         }
 
         const featuredImageInput = formData.get("featuredImage");
-        const featuredImageValue = featuredImageInput && featuredImageInput.trim().length ? featuredImageInput : (uploadedUrls.length ? uploadedUrls[0] : "");
+        const featuredImageValue = uploadedUrls.length
+            ? uploadedUrls[0]
+            : (featuredImageInput && featuredImageInput.trim().length ? featuredImageInput.trim() : "");
         const sizeValue = parseNumber(formData.get("size"));
         const priceValue = Number(formData.get("price"));
         const capacityValue = Number(formData.get("capacity"));
