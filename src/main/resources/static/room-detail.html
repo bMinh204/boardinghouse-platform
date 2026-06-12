@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chi tiết phòng | Trọ Tốt ICTU</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=Bricolage+Grotesque:wght@500;700;800&display=swap" rel="stylesheet">
+    <script>
+        (function () {
+            try {
+                const savedTheme = localStorage.getItem("trototn-theme");
+                const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+                document.documentElement.dataset.theme = savedTheme || systemTheme;
+            } catch (error) {
+                document.documentElement.dataset.theme = "dark";
+            }
+        }());
+    </script>
+    <link rel="stylesheet" href="/styles.css?v=room-detail-1">
+</head>
+<body>
+<div class="page-shell room-detail-page">
+    <header class="topbar">
+        <a class="room-detail-brand" href="/">
+            <img src="/ictu-logo.jpg" alt="Logo ICTU">
+            <span>Trọ Tốt ICTU</span>
+        </a>
+        <div class="topbar-actions">
+            <button class="ghost-button theme-toggle" type="button" data-theme-toggle>
+                <span class="theme-toggle-track" aria-hidden="true"><span class="theme-toggle-thumb"></span></span>
+                <span data-theme-label>Giao diện sáng</span>
+            </button>
+            <a id="authLink" class="ghost-button link-button" href="/auth.html">Đăng nhập / Đăng ký</a>
+            <button id="logoutBtn" class="ghost-button hidden" type="button">Đăng xuất</button>
+        </div>
+    </header>
+
+    <nav class="room-detail-breadcrumb" aria-label="Điều hướng">
+        <a href="/">Trang chủ</a>
+        <span>/</span>
+        <a href="/#roomSection">Danh sách phòng</a>
+        <span>/</span>
+        <strong id="breadcrumbTitle">Chi tiết phòng</strong>
+    </nav>
+
+    <main id="roomDetail" class="room-detail-shell">
+        <section class="panel room-detail-loading">
+            <div class="empty-state">Đang tải thông tin phòng...</div>
+        </section>
+    </main>
+</div>
+
+<div id="toast" class="toast hidden"></div>
+<script src="/theme.js"></script>
+<script src="/room-detail.js?v=3"></script>
+</body>
+</html>

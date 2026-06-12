@@ -229,9 +229,12 @@ class AuthController {
         event.preventDefault();
         const form = event.target;
         const payload = Object.fromEntries(new FormData(form).entries());
+        if (payload.dateOfBirth === "") {
+            delete payload.dateOfBirth;
+        }
 
-        if (!payload.fullName || !payload.email || !payload.password) {
-            return this.view.showFormError(form, "Vui lòng nhập họ tên, email và mật khẩu.");
+        if (!payload.fullName || !payload.email || !payload.password || !payload.phone || !payload.dateOfBirth) {
+            return this.view.showFormError(form, "Vui lòng nhập đầy đủ họ tên, email, mật khẩu, số điện thoại và ngày sinh.");
         }
         if ((payload.password || "").length < 6) {
             return this.view.showFormError(form, "Mật khẩu tối thiểu 6 ký tự.");

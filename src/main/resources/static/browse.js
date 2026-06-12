@@ -12,7 +12,8 @@ class BrowseModel {
             userListCollapsed: true,
             adminUserDetailCollapsed: false,
             collapsedUserCards: new Set(),
-            scrolledToRole: false, currentPage: 0, totalPages: 1, eventSource: null
+            scrolledToRole: false, currentPage: 0, totalPages: 1, eventSource: null,
+            heroCarouselIndex: 0
         };
     }
 
@@ -57,7 +58,6 @@ class BrowseView {
     constructor() {
         this.refs = {
             authLink: document.getElementById("authLink"),
-            authHeroLink: document.getElementById("authHeroLink"),
             userBadge: document.getElementById("userBadge"),
             logoutBtn: document.getElementById("logoutBtn"),
             roomList: document.getElementById("roomList"),
@@ -92,8 +92,7 @@ class BrowseView {
             roomResetBtn: document.getElementById("roomResetBtn"),
             roomForm: document.getElementById("roomForm"),
             toast: document.getElementById("toast"),
-            statRooms: document.getElementById("statRooms"),
-            statPending: document.getElementById("statPending")
+            heroRoomCarousel: document.getElementById("heroRoomCarousel")
         };
         this.toastTimer = null;
     }
@@ -109,7 +108,7 @@ class BrowseView {
         document.getElementById("backupBtn").addEventListener("click", e => controller.onBackup(e));
         document.addEventListener("click", e => controller.onDocumentClick(e));
         document.addEventListener("submit", e => controller.onDynamicSubmit(e));
-        [this.refs.authLink, this.refs.authHeroLink].forEach(button => {
+        [this.refs.authLink].forEach(button => {
             if (button) {
                 const navigate = event => {
                     event.preventDefault();
@@ -133,7 +132,7 @@ class BrowseView {
 
     renderAll(state) {
         this.renderUser(state);
-        this.renderQuickStats(state);
+        this.renderHeroCarousel(state);
         this.renderRooms(state);
         this.renderTenantSection(state);
         this.renderLandlordSection(state);
@@ -147,7 +146,6 @@ class BrowseView {
         if (!state.user) {
             this.refs.userBadge.textContent = "Khách tham quan";
             this.refs.authLink.textContent = "Đăng nhập / Đăng ký";
-            if (this.refs.authHeroLink) this.refs.authHeroLink.textContent = this.refs.authLink.textContent;
             this.setAuthNavigation("/auth.html");
             this.refs.logoutBtn.classList.add("hidden");
             this.refs.adminUserDetail.classList.toggle("hidden", Boolean(state.adminUserDetailCollapsed));
@@ -155,21 +153,79 @@ class BrowseView {
         }
         this.refs.userBadge.textContent = `${state.user.fullName} - ${labelRole(state.user.role)}`;
         this.refs.authLink.textContent = state.user.fullName;
-        if (this.refs.authHeroLink) this.refs.authHeroLink.textContent = "Xem hồ sơ";
         this.setAuthNavigation("/profile.html");
         this.refs.logoutBtn.classList.remove("hidden");
     }
 
     setAuthNavigation(action) {
-        [this.refs.authLink, this.refs.authHeroLink].forEach(button => {
+        [this.refs.authLink].forEach(button => {
             const form = button?.closest("form");
             if (form) form.action = action;
         });
     }
 
-    renderQuickStats(state) {
-        this.refs.statRooms.textContent = state.rooms.length;
-        this.refs.statPending.textContent = state.adminDashboard?.pendingRooms ?? state.pendingRooms.length ?? 0;
+    renderHeroCarousel(state) {
+        if (!this.refs.heroRoomCarousel) return;
+        const approvedRooms = state.rooms
+            .filter(room => !room.moderationStatus || room.moderationStatus === "APPROVED")
+            .slice(0, 8);
+
+        if (!approvedRooms.length) {
+            this.refs.heroRoomCarousel.innerHTML = `
+                <div class="featured-room-card">
+                    <div class="room-photo-stack">
+                        <div class="room-visual" role="img" aria-label="Ảnh preview phòng studio">
+                            <span class="room-window"></span>
+                            <span class="room-desk"></span>
+                            <span class="room-bed"></span>
+                        </div>
+                        <div class="photo-thumbs" aria-hidden="true"><span></span><span></span><span></span></div>
+                    </div>
+                    <div>
+                        <p class="eyebrow">Phòng đã duyệt</p>
+                        <h3>Chưa có phòng phù hợp</h3>
+                        <div class="tag-row">
+                            <span class="tag">Thử mở rộng bộ lọc</span>
+                            <span class="tag">Gần ICTU</span>
+                        </div>
+                    </div>
+                </div>`;
+            return;
+        }
+
+        state.heroCarouselIndex = normalizeIndex(state.heroCarouselIndex, approvedRooms.length);
+        const slides = approvedRooms.map(room => {
+            const amenities = (room.amenities ?? []).slice(0, 3);
+            return `
+                <button class="hero-room-slide" type="button" data-action="view-room" data-id="${room.id}">
+                    <img src="${escapeHtml(imageSrc(room.featuredImage))}" alt="${escapeHtml(room.title)}" onerror="${imageErrorFallback()}">
+                    <span class="hero-room-info">
+                        <span class="eyebrow">Phòng đã duyệt</span>
+                        <strong>${escapeHtml(room.title)}</strong>
+                        <span class="hero-room-meta">${escapeHtml(room.areaName ?? room.propertyName ?? "Gần ICTU")} · ${formatMoney(room.price)}/tháng</span>
+                        <span class="tag-row">${amenities.length ? amenities.map(a => `<span class="tag">${escapeHtml(a)}</span>`).join("") : `<span class="tag">${room.size ?? "--"} m²</span><span class="tag">${room.capacity ?? "--"} người</span>`}</span>
+                    </span>
+                </button>`;
+        }).join("");
+
+        const dots = approvedRooms.map((_, index) => `<span class="${index === state.heroCarouselIndex ? "active" : ""}"></span>`).join("");
+        this.refs.heroRoomCarousel.innerHTML = `
+            <div class="hero-carousel-head">
+                <div>
+                    <p class="eyebrow">Phòng nổi bật</p>
+                    <strong>${approvedRooms.length} phòng đã duyệt</strong>
+                </div>
+                <div class="hero-carousel-controls">
+                    <button class="icon-button" type="button" data-action="hero-carousel-prev" aria-label="Phòng trước">‹</button>
+                    <button class="icon-button" type="button" data-action="hero-carousel-next" aria-label="Phòng tiếp theo">›</button>
+                </div>
+            </div>
+            <div class="hero-room-slider">
+                <div class="hero-room-track" style="--hero-slide-index: ${state.heroCarouselIndex};">
+                    ${slides}
+                </div>
+            </div>
+            <div class="hero-carousel-dots" aria-hidden="true">${dots}</div>`;
     }
 
     renderRooms(state) {
@@ -377,6 +433,7 @@ class BrowseView {
     }
 
     renderDetail(state) {
+        if (!this.refs.detailContent) return;
         if (!state.selectedRoom) {
             this.refs.detailContent.innerHTML = `Ảnh, giá, tiện nghi, đánh giá và bản đồ của phòng sẽ hiện tại đây.`;
             return;
@@ -499,6 +556,8 @@ class BrowseView {
         form.price.value = room.price ?? "";
         form.size.value = room.size ?? "";
         form.capacity.value = room.capacity ?? "";
+        form.totalRooms.value = room.totalRooms ?? 1;
+        form.availableRooms.value = room.availableRooms ?? (room.status === "OCCUPIED" ? 0 : 1);
         form.amenities.value = (room.amenities ?? []).join(", ");
         form.featuredImage.value = room.featuredImage ?? "";
         form.imageUrls.value = (room.imageUrls ?? []).join(", ");
@@ -508,12 +567,44 @@ class BrowseView {
         form.contactPhone.value = room.contactPhone ?? "";
         form.status.value = room.status ?? "AVAILABLE";
         form.availableFrom.value = room.availableFrom ?? "";
+        this.loadPhysicalRoomStats(room.id);
         this.scrollTo("roomForm");
     }
 
     resetRoomForm() {
         this.refs.roomSubmitBtn.textContent = "Đăng tin / Cập nhật";
         this.refs.roomForm.reset();
+        this.renderPhysicalRoomStats(null);
+    }
+
+    async loadPhysicalRoomStats(roomId) {
+        try {
+            const response = await fetch(`/api/rooms/${roomId}/layout`, { credentials: "same-origin" });
+            if (!response.ok) throw new Error();
+            const data = await response.json();
+            this.renderPhysicalRoomStats(data.layout);
+        } catch (error) {
+            this.renderPhysicalRoomStats(null, "Không thể tải thống kê sơ đồ phòng.");
+        }
+    }
+
+    renderPhysicalRoomStats(layout, errorMessage = "") {
+        const values = {
+            available: layout?.availableRooms ?? 0,
+            occupied: layout?.occupiedRooms ?? 0,
+            held: layout?.heldRooms ?? 0,
+            expiring: layout?.expiringSoonRooms ?? 0,
+            maintenance: layout?.maintenanceRooms ?? 0
+        };
+        Object.entries(values).forEach(([key, value]) => {
+            const element = document.querySelector(`[data-room-count="${key}"]`);
+            if (element) element.textContent = value;
+        });
+        const hint = document.getElementById("roomPhysicalStatsHint");
+        if (!hint) return;
+        hint.textContent = errorMessage || (layout
+            ? `Tổng ${layout.totalRooms} phòng vật lý. Chỉnh trạng thái tại trang Sơ đồ phòng.`
+            : "Các số liệu này tự động lấy từ sơ đồ phòng vật lý sau khi nhà trọ được tạo.");
     }
 
     // ---- Templates ----
@@ -531,6 +622,7 @@ class BrowseView {
                         <span class="status-chip">${labelRoomStatus(room.status)}</span>
                         <span class="muted-badge">${room.size} m²</span>
                         <span class="muted-badge">${room.capacity} người</span>
+                        <span class="muted-badge">${room.availableRooms ?? 0}/${room.totalRooms ?? 1} phòng trống</span>
                     </div>
                     <div class="tag-row">${(room.amenities ?? []).slice(0, 4).map(a => `<span class="tag">${escapeHtml(a)}</span>`).join("")}</div>
                     <div class="stack-meta">
@@ -559,10 +651,12 @@ class BrowseView {
                     <div class="tag-row">
                         <span class="status-chip">${labelRoomStatus(room.status)}</span>
                         <span class="muted-badge">${labelModeration(room.moderationStatus)}</span>
+                        <span class="muted-badge">${room.availableRooms ?? 0}/${room.totalRooms ?? 1} phòng trống</span>
                         <span class="muted-badge">${room.viewCount ?? 0} xem</span>
                     </div>
                     <div class="card-actions">
                         <button class="primary-button" type="button" data-action="view-room" data-id="${room.id}">Chi tiết</button>
+                        <a class="ghost-button link-button" href="/room-layout.html?id=${room.id}">Sơ đồ phòng</a>
                         <button class="ghost-button" type="button" data-action="edit-room" data-id="${room.id}">Chỉnh sửa</button>
                         <button class="ghost-button" type="button" data-action="update-room-status" data-id="${room.id}" data-status="AVAILABLE">Còn trống</button>
                         <button class="ghost-button" type="button" data-action="update-room-status" data-id="${room.id}" data-status="OCCUPIED">Đã thuê</button>
@@ -614,6 +708,7 @@ class BrowseView {
                 <div class="stack-meta">
                     <span class="muted-badge">${formatMoney(room.price)}</span>
                     <span class="muted-badge">${room.size} m²</span>
+                    <span class="muted-badge">${room.availableRooms ?? 0}/${room.totalRooms ?? 1} phòng trống</span>
                 </div>
                 <div class="stack-actions">
                     <button class="primary-button" type="button" data-action="view-room" data-id="${room.id}">Xem chi tiết</button>
@@ -640,17 +735,23 @@ class BrowseView {
         const canCancel = state.user?.role === "TENANT" && item.status === "PENDING";
         return `
             <div class="stack-item">
-                <strong>${escapeHtml(item.room.title)}</strong>
+                <strong>${escapeHtml(item.room.title)}${item.physicalRoomNumber ? ` - Phòng ${escapeHtml(item.physicalRoomNumber)}` : ""}</strong>
                 <p>Ngày vào ở: ${formatDate(item.moveInDate)}</p>
                 <p>${escapeHtml(item.note)}</p>
                 <div class="stack-meta">
                     <span class="muted-badge">${escapeHtml(item.tenant.fullName)}</span>
                     <span class="muted-badge">${escapeHtml(item.landlord.fullName)}</span>
                     <span class="muted-badge">${labelRentalStatus(item.status)}</span>
+                    ${item.status === "PENDING" && item.expiresAt
+                        ? `<span class="muted-badge">Hết hạn ${formatDateTime(item.expiresAt)}</span>` : ""}
                 </div>
                 <div class="stack-actions">
                     <button class="primary-button" type="button" data-action="view-room" data-id="${item.room.id}">Xem phòng</button>
-                    ${canApprove ? `<button class="ghost-button" type="button" data-action="rental-status" data-id="${item.id}" data-status="APPROVED">Duyệt</button><button class="ghost-button" type="button" data-action="rental-status" data-id="${item.id}" data-status="REJECTED">Từ chối</button>` : ""}
+                    ${canApprove && item.status === "PENDING" ? `<a class="ghost-button link-button" href="/contract.html?requestId=${item.id}">Lập hợp đồng & duyệt</a><button class="ghost-button" type="button" data-action="rental-status" data-id="${item.id}" data-status="REJECTED">Từ chối</button>` : ""}
+                    ${item.status === "APPROVED" && item.contractAvailable
+                        ? `<a class="primary-button link-button" href="/api/interactions/rental-requests/${item.id}/contract">Tải hợp đồng</a>` : ""}
+                    ${canApprove && item.status === "APPROVED" && !item.contractAvailable
+                        ? `<a class="primary-button link-button" href="/contract.html?requestId=${item.id}">Lập hợp đồng bổ sung</a>` : ""}
                     ${canCancel ? `<button class="ghost-button" type="button" data-action="rental-status" data-id="${item.id}" data-status="CANCELLED">Hủy yêu cầu</button>` : ""}
                 </div>
             </div>`;
@@ -905,30 +1006,30 @@ class BrowseController {
     }
 
     async selectRoom(roomId, scrollIntoView) {
-        const data = await this.model.api(`/api/rooms/${roomId}`);
-        this.model.state.selectedRoom = data.room;
-        this.view.renderDetail(this.model.state);
-        this.initLeafletMap(data.room);
-        if (scrollIntoView) this.view.scrollTo("detailPanel");
+        window.location.href = `/room-detail.html?id=${encodeURIComponent(roomId)}`;
     }
 
     async onSearch(event) {
         event.preventDefault();
         this.model.state.currentPage = 0;
+        this.model.state.heroCarouselIndex = 0;
         const params = Object.fromEntries(new FormData(event.target).entries());
         params.page = 0;
         await this.model.loadRooms(params);
         this.view.renderRooms(this.model.state);
         this.view.renderQuickStats(this.model.state);
+        this.view.renderHeroCarousel(this.model.state);
     }
 
     async onPageChange(page) {
         this.model.state.currentPage = page;
+        this.model.state.heroCarouselIndex = 0;
         const form = document.getElementById("searchForm");
         const params = form ? Object.fromEntries(new FormData(form).entries()) : {};
         params.page = page;
         await this.model.loadRooms(params);
         this.view.renderRooms(this.model.state);
+        this.view.renderHeroCarousel(this.model.state);
         this.view.scrollTo("roomSection");
     }
 
@@ -975,15 +1076,21 @@ class BrowseController {
         const sizeValue = parseNumber(formData.get("size"));
         const priceValue = Number(formData.get("price"));
         const capacityValue = Number(formData.get("capacity"));
+        const totalRoomsValue = Number(formData.get("totalRooms"));
+        const availableRoomsValue = Number(formData.get("availableRooms"));
 
         if (!featuredImageValue && uploadedUrls.length === 0) return this.view.showToast("Vui lòng nhập URL ảnh đại diện hoặc chọn ảnh từ máy.", true);
         if (Number.isNaN(priceValue) || priceValue <= 0) return this.view.showToast("Giá thuê phải là số hợp lệ.", true);
         if (sizeValue === null || sizeValue <= 0) return this.view.showToast("Diện tích phải là số hợp lệ.", true);
-        if (Number.isNaN(capacityValue) || capacityValue <= 0) return this.view.showToast("Số phòng hiện tại phải là số hợp lệ.", true);
+        if (Number.isNaN(capacityValue) || capacityValue <= 0) return this.view.showToast("Sức chứa phải là số hợp lệ.", true);
+        if (Number.isNaN(totalRoomsValue) || totalRoomsValue <= 0) return this.view.showToast("Tổng số phòng phải lớn hơn 0.", true);
+        if (Number.isNaN(availableRoomsValue) || availableRoomsValue < 0) return this.view.showToast("Số phòng còn trống không hợp lệ.", true);
+        if (availableRoomsValue > totalRoomsValue) return this.view.showToast("Số phòng còn trống không được vượt tổng số phòng.", true);
 
         const payload = {
             propertyName: formData.get("propertyName"), title: formData.get("title"), address: formData.get("address"),
             areaName: formData.get("areaName"), price: priceValue, size: sizeValue, capacity: capacityValue,
+            totalRooms: totalRoomsValue, availableRooms: availableRoomsValue,
             amenities: splitComma(formData.get("amenities")), featuredImage: featuredImageValue,
             imageUrls: [...splitComma(formData.get("imageUrls")), ...uploadedUrls], description: formData.get("description"),
             contractNote: formData.get("contractNote"), mapQuery: formData.get("mapQuery"), contactPhone: formData.get("contactPhone"),
@@ -1062,7 +1169,22 @@ class BrowseController {
         if (!button) return;
         const { action, id, status } = button.dataset;
         try {
-            if (action === "view-room") await this.selectRoom(id, true);
+            if (action === "hero-carousel-prev" || action === "hero-carousel-next") {
+                const roomCount = this.model.state.rooms
+                    .filter(room => !room.moderationStatus || room.moderationStatus === "APPROVED")
+                    .slice(0, 8)
+                    .length;
+                if (roomCount > 0) {
+                    const direction = action === "hero-carousel-next" ? 1 : -1;
+                    this.model.state.heroCarouselIndex = normalizeIndex(this.model.state.heroCarouselIndex + direction, roomCount);
+                    this.view.renderHeroCarousel(this.model.state);
+                }
+                return;
+            }
+            if (action === "view-room") {
+                await this.selectRoom(id, true);
+                return;
+            }
             if (action === "toggle-favorite") {
                 await this.model.api(`/api/rooms/${id}/favorite`, { method: "POST" });
                 await this.refreshApp();
@@ -1275,6 +1397,11 @@ function formatMoney(value) {
     return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND", maximumFractionDigits: 0 }).format(Number(value ?? 0));
 }
 
+function normalizeIndex(index, length) {
+    if (!length) return 0;
+    return ((index % length) + length) % length;
+}
+
 function parseNumber(value) {
     const cleaned = String(value ?? "").replace(/[^0-9.,]/g, "").replace(",", ".");
     return cleaned ? Number(cleaned) : null;
@@ -1322,7 +1449,8 @@ function labelRentalStatus(status) {
         PENDING: "Đang chờ xác nhận",
         APPROVED: "Đã duyệt",
         REJECTED: "Bị từ chối",
-        CANCELLED: "Đã hủy"
+        CANCELLED: "Đã hủy",
+        EXPIRED: "Đã hết hạn"
     }[status] ?? status;
 }
 

@@ -107,12 +107,37 @@ class ProfileView {
         form.fullName.value = user.fullName || "";
         form.email.value = user.email || "";
         form.phone.value = user.phone || "";
+        if (form.cccd) {
+            form.cccd.value = user.cccd || "";
+        }
         form.address.value = user.address || "";
+        if (form.dateOfBirth) {
+            form.dateOfBirth.value = user.dateOfBirth || "";
+        }
+        if (form.age) {
+            const age = this.calculateAge(user.dateOfBirth);
+            form.age.value = age === null ? "" : String(age);
+        }
         
         const roles = { TENANT: "Người thuê", LANDLORD: "Chủ trọ", ADMIN: "Admin" };
         form.role.value = roles[user.role] || user.role || "";
 
         this.setEditMode(false, isOwner);
+    }
+
+    calculateAge(dateOfBirth) {
+        if (!dateOfBirth || typeof dateOfBirth !== "string") return null;
+        const parts = dateOfBirth.split("-").map(Number);
+        if (parts.length !== 3 || parts.some(Number.isNaN)) return null;
+        const [year, month, day] = parts;
+        const today = new Date();
+        let age = today.getFullYear() - year;
+        const hasHadBirthday = (today.getMonth() + 1 > month)
+            || (today.getMonth() + 1 === month && today.getDate() >= day);
+        if (!hasHadBirthday) {
+            age -= 1;
+        }
+        return age >= 0 ? age : null;
     }
 
     setEditMode(isEditing, isOwner) {
@@ -124,7 +149,13 @@ class ProfileView {
         if (isOwner) {
             form.fullName.disabled = !isEditing;
             form.phone.disabled = !isEditing;
+            if (form.cccd) {
+                form.cccd.disabled = !isEditing;
+            }
             form.address.disabled = !isEditing;
+            if (form.dateOfBirth) {
+                form.dateOfBirth.disabled = !isEditing;
+            }
             
             this.refs.saveBtn.classList.toggle("hidden", !isEditing);
             this.refs.cancelBtn.classList.toggle("hidden", !isEditing);
@@ -180,7 +211,9 @@ class ProfileController {
         const payload = {
             fullName: formData.get("fullName"),
             phone: formData.get("phone"),
-            address: formData.get("address")
+            cccd: formData.get("cccd"),
+            address: formData.get("address"),
+            dateOfBirth: formData.get("dateOfBirth") || null
         };
 
         try {

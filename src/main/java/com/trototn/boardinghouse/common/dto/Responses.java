@@ -4,17 +4,18 @@ import com.trototn.boardinghouse.auth.domain.Role;
 import com.trototn.boardinghouse.interaction.domain.RentalStatus;
 import com.trototn.boardinghouse.room.domain.ModerationStatus;
 import com.trototn.boardinghouse.room.domain.RoomStatus;
+import com.trototn.boardinghouse.room.domain.PhysicalRoomStatus;
 
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 
 public class Responses {
-    public record UserView(Long id, String fullName, String email, String phone, String address, Role role,
-                           boolean active, boolean locked) {}
+    public record UserView(Long id, String fullName, String email, String phone, String address, String cccd,
+                           LocalDate dateOfBirth, Role role, boolean active, boolean locked) {}
 
-    public record UserDetail(Long id, String fullName, String email, String phone, String address, Role role,
-                             boolean active, boolean locked, Instant createdAt) {}
+    public record UserDetail(Long id, String fullName, String email, String phone, String address, String cccd,
+                             LocalDate dateOfBirth, Role role, boolean active, boolean locked, Instant createdAt) {}
 
     public record SurveyView(Long id, String userName, int cleanlinessRating, int securityRating,
                              int convenienceRating, String comment, Instant createdAt) {}
@@ -28,6 +29,8 @@ public class Responses {
             Long price,
             Double size,
             Integer capacity,
+            Integer totalRooms,
+            Integer availableRooms,
             List<String> amenities,
             String featuredImage,
             List<String> imageUrls,
@@ -52,8 +55,42 @@ public class Responses {
 
     public record MiniUser(Long id, String fullName, String email) {}
 
+    public record PhysicalRoomView(Long id, String roomNumber, Integer displayOrder,
+                                   PhysicalRoomStatus status, Instant holdExpiresAt,
+                                   boolean heldByCurrentUser) {}
+
+    public record RoomSectionView(Long id, String name, Integer displayOrder,
+                                  List<PhysicalRoomView> rooms) {}
+
+    public record RoomLayoutView(Long roomId, String propertyName, int totalRooms,
+                                 int availableRooms, int heldRooms, int occupiedRooms,
+                                 int expiringSoonRooms, int maintenanceRooms,
+                                 List<RoomSectionView> sections) {}
+
     public record RentalRequestView(Long id, MiniRoom room, MiniUser tenant, MiniUser landlord,
-                                    LocalDate moveInDate, String note, RentalStatus status, Instant updatedAt) {}
+                                    Long physicalRoomId, String physicalRoomNumber,
+                                    LocalDate moveInDate, String note, RentalStatus status,
+                                    boolean contractAvailable, Instant expiresAt, Instant updatedAt) {}
+
+    public record ContractDraft(
+            Long rentalRequestId,
+            String landlordName,
+            LocalDate landlordDateOfBirth,
+            String landlordAddress,
+            String landlordCccd,
+            String landlordPhone,
+            String tenantName,
+            LocalDate tenantDateOfBirth,
+            String tenantAddress,
+            String tenantCccd,
+            String tenantPhone,
+            String roomTitle,
+            String roomAddress,
+            Double roomSize,
+            Integer roomCapacity,
+            Long suggestedRent,
+            LocalDate suggestedStartDate
+    ) {}
 
     public record MessageView(Long id, Long senderId, String senderName, String content, Instant createdAt) {}
 

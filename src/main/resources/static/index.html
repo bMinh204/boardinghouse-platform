@@ -51,36 +51,6 @@
         <div class="hero-copy">
             <p class="eyebrow">Trang phòng trọ thông minh</p>
             <h2>Tìm phòng trọ gần ICTU nhanh hơn, rõ hơn, ít nhiễu hơn.</h2>
-            <p class="hero-description">
-                Lọc theo ngân sách, khu vực, tiện nghi và xem ngay ảnh, bản đồ, giá thuê, trạng thái phòng trong
-                một luồng duyệt phòng gọn gàng cho sinh viên và chủ trọ.
-            </p>
-            <div class="stat-row">
-                <div class="stat-pill">
-                    <span class="stat-icon">R</span>
-                    <span>Phòng đang hiển thị</span>
-                    <strong id="statRooms">0</strong>
-                    <small>Cập nhật theo bộ lọc</small>
-                </div>
-                <div class="stat-pill">
-                    <span class="stat-icon">M</span>
-                    <span>Phòng chờ duyệt</span>
-                    <strong id="statPending">0</strong>
-                    <small>Kiểm duyệt trước khi lên trang</small>
-                </div>
-                <div class="stat-pill">
-                    <span class="stat-icon">AI</span>
-                    <span>Chatbot gợi ý</span>
-                    <strong>Sẵn sàng</strong>
-                    <small>Gợi ý theo ngân sách và vị trí</small>
-                </div>
-            </div>
-            <div class="hero-actions">
-                <a class="primary-button link-button" href="#roomSection">Xem danh sách phòng</a>
-                <form class="nav-form" action="/auth.html" method="get">
-                    <button id="authHeroLink" class="ghost-button link-button" type="submit">Đăng nhập / Đăng ký</button>
-                </form>
-            </div>
         </div>
         <div class="hero-side">
             <div class="hero-preview" aria-label="Preview trải nghiệm tìm phòng">
@@ -104,24 +74,26 @@
                     </div>
                 </div>
 
-                <div class="featured-room-card">
-                    <div class="room-photo-stack">
-                        <div class="room-visual" role="img" aria-label="Ảnh preview phòng studio">
-                            <span class="room-window"></span>
-                            <span class="room-desk"></span>
-                            <span class="room-bed"></span>
+                <div id="heroRoomCarousel" class="hero-room-carousel" aria-label="Slide phòng trọ đã duyệt">
+                    <div class="featured-room-card">
+                        <div class="room-photo-stack">
+                            <div class="room-visual" role="img" aria-label="Ảnh preview phòng studio">
+                                <span class="room-window"></span>
+                                <span class="room-desk"></span>
+                                <span class="room-bed"></span>
+                            </div>
+                            <div class="photo-thumbs" aria-hidden="true">
+                                <span></span><span></span><span></span>
+                            </div>
                         </div>
-                        <div class="photo-thumbs" aria-hidden="true">
-                            <span></span><span></span><span></span>
-                        </div>
-                    </div>
-                    <div>
-                        <p class="eyebrow">Phòng nổi bật</p>
-                        <h3>Studio mini, ban công sáng</h3>
-                        <div class="tag-row">
-                            <span class="tag">Wifi mạnh</span>
-                            <span class="tag">Gần cổng trường</span>
-                            <span class="tag">Có bếp</span>
+                        <div>
+                            <p class="eyebrow">Phòng đã duyệt</p>
+                            <h3>Đang tải danh sách phòng</h3>
+                            <div class="tag-row">
+                                <span class="tag">Gần ICTU</span>
+                                <span class="tag">Có ảnh</span>
+                                <span class="tag">Đã kiểm duyệt</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -211,7 +183,9 @@
                     <input name="areaName" placeholder="Khu vực" required>
                     <input name="price" type="number" min="0" placeholder="Giá thuê" required>
                     <input name="size" type="text" placeholder="Diện tích (m2)" required>
-                    <input name="capacity" type="number" min="1" placeholder="Số phòng hiện tại" required>
+                    <input name="capacity" type="number" min="1" placeholder="Sức chứa mỗi phòng (người)" required>
+                    <input name="totalRooms" type="number" min="1" placeholder="Tổng số phòng của nhà trọ" required>
+                    <input name="availableRooms" type="number" min="0" placeholder="Số phòng còn trống" required>
                     <input name="amenities" placeholder="Tiện nghi, cách nhau bởi dấu phẩy" required>
                     <input name="featuredImage" placeholder="URL ảnh đại diện">
                     <input name="imageUrls" placeholder="Danh sách ảnh (URL), cách nhau bởi dấu phẩy">
@@ -227,6 +201,14 @@
                         <option value="MAINTENANCE">Đang sửa chữa</option>
                         <option value="EXPIRING_SOON">Sắp hết hợp đồng</option>
                     </select>
+                    <div id="roomPhysicalStats" class="room-physical-stats form-wide">
+                        <div><strong data-room-count="available">0</strong><span>Còn trống</span></div>
+                        <div><strong data-room-count="occupied">0</strong><span>Đã thuê</span></div>
+                        <div><strong data-room-count="held">0</strong><span>Đang giữ</span></div>
+                        <div><strong data-room-count="expiring">0</strong><span>Sắp hết HĐ</span></div>
+                        <div><strong data-room-count="maintenance">0</strong><span>Bảo trì</span></div>
+                    </div>
+                    <p id="roomPhysicalStatsHint" class="form-hint form-wide">Các số liệu này tự động lấy từ sơ đồ phòng vật lý sau khi nhà trọ được tạo.</p>
                     <textarea name="description" placeholder="Mô tả phòng, nội thất, dịch vụ..." required></textarea>
                     <textarea name="contractNote" placeholder="Ghi chú hợp đồng, cọc, điều kiện..."></textarea>
                     <div class="form-actions">
@@ -288,16 +270,6 @@
         </div>
 
         <aside class="side-column">
-            <section id="detailPanel" class="panel">
-                <div class="section-header">
-                    <div>
-                        <p class="eyebrow">Chi tiết phòng</p>
-                        <h3>Mở một phòng để xem đầy đủ thông tin</h3>
-                    </div>
-                </div>
-                <div id="detailContent" class="empty-state">Ảnh, giá, tiện nghi, đánh giá và bản đồ của phòng sẽ hiện tại đây.</div>
-            </section>
-
             <section id="conversationPanel" class="panel hidden">
                 <div class="section-header">
                     <div>
@@ -337,7 +309,7 @@
 <script>
     (function () {
         function goToAuth(event) {
-            const target = event.target.closest("#authLink, #authHeroLink");
+            const target = event.target.closest("#authLink");
             if (!target) return;
             event.preventDefault();
             event.stopPropagation();
@@ -351,6 +323,6 @@
 <script src="/theme.js?v=1"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script src="https://unpkg.com/leaflet-geosearch@3.0.0/dist/geosearch.umd.js"></script>
-<script src="/browse.js?v=12"></script>
+<script src="/browse.js?v=19"></script>
 </body>
 </html>

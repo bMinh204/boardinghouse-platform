@@ -48,9 +48,14 @@ public class DashboardService {
 
     public Responses.LandlordDashboard landlordDashboard(User landlord) {
         List<Room> rooms = roomRepository.findByOwner(landlord);
-        long totalRooms = rooms.size();
-        long available = rooms.stream().filter(r -> r.getStatus() == RoomStatus.AVAILABLE).count();
-        long occupied = rooms.stream().filter(r -> r.getStatus() == RoomStatus.OCCUPIED).count();
+        long totalRooms = rooms.stream()
+                .mapToLong(r -> Optional.ofNullable(r.getTotalRooms()).orElse(1))
+                .sum();
+        long available = rooms.stream()
+                .mapToLong(r -> Optional.ofNullable(r.getAvailableRooms())
+                        .orElse(r.getStatus() == RoomStatus.OCCUPIED ? 0 : 1))
+                .sum();
+        long occupied = Math.max(totalRooms - available, 0);
         long maintenance = rooms.stream().filter(r -> r.getStatus() == RoomStatus.MAINTENANCE).count();
         long expiring = rooms.stream().filter(r -> r.getStatus() == RoomStatus.EXPIRING_SOON).count();
         long pending = rooms.stream().filter(r -> r.getModerationStatus() == ModerationStatus.PENDING).count();

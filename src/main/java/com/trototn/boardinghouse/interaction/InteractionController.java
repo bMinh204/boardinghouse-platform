@@ -1,6 +1,8 @@
 package com.trototn.boardinghouse.interaction;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.trototn.boardinghouse.interaction.domain.RentalStatus;
+import com.trototn.boardinghouse.interaction.domain.ResidenceType;
 import com.trototn.boardinghouse.auth.domain.Role;
 import com.trototn.boardinghouse.auth.domain.User;
 import com.trototn.boardinghouse.common.dto.Responses;
@@ -9,11 +11,15 @@ import com.trototn.boardinghouse.interaction.InteractionService;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
 import java.time.LocalDate;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
 @RestController
@@ -21,10 +27,13 @@ import java.util.Map;
 public class InteractionController {
     private final InteractionService interactionService;
     private final UserRepository userRepository;
+    private final ContractDocumentService contractDocumentService;
 
-    public InteractionController(InteractionService interactionService, UserRepository userRepository) {
+    public InteractionController(InteractionService interactionService, UserRepository userRepository,
+            ContractDocumentService contractDocumentService) {
         this.interactionService = interactionService;
         this.userRepository = userRepository;
+        this.contractDocumentService = contractDocumentService;
     }
 
     @GetMapping("/conversations")
@@ -69,11 +78,53 @@ public class InteractionController {
         return Map.of("rentalRequest", view);
     }
 
+    @PostMapping("/rooms/{roomId}/physical-rooms/{physicalRoomId}/hold")
+    @PreAuthorize("hasRole('TENANT')")
+    public Map<String, Object> holdPhysicalRoom(Principal principal, @PathVariable Long roomId,
+            @PathVariable Long physicalRoomId, @RequestBody HoldRoomRequest request) {
+        User user = userRepository.findByEmail(principal.getName()).orElseThrow();
+        Responses.RentalRequestView view = interactionService.holdPhysicalRoom(
+                user, roomId, physicalRoomId, request.moveInDate(), request.note());
+        return Map.of("rentalRequest", view);
+    }
+
+    @DeleteMapping("/rooms/{roomId}/physical-rooms/{physicalRoomId}/hold")
+    @PreAuthorize("hasRole('TENANT')")
+    public ResponseEntity<?> cancelPhysicalRoomHold(Principal principal, @PathVariable Long roomId,
+            @PathVariable Long physicalRoomId) {
+        User user = userRepository.findByEmail(principal.getName()).orElseThrow();
+        interactionService.cancelPhysicalRoomHold(user, roomId, physicalRoomId);
+        return ResponseEntity.ok(Map.of("message", "cancelled"));
+    }
+
     @PatchMapping("/rental-requests/{id}")
     public ResponseEntity<?> updateRental(Principal principal, @PathVariable Long id, @RequestBody RentalStatusRequest request) {
         User user = userRepository.findByEmail(principal.getName()).orElseThrow();
-        interactionService.updateRentalStatus(user, id, request.status());
+        interactionService.updateRentalStatus(user, id, request);
         return ResponseEntity.ok(Map.of("message", "updated"));
+    }
+
+    @GetMapping("/rental-requests/{id}/contract-draft")
+    public Map<String, Object> getContractDraft(Principal principal, @PathVariable Long id) {
+        User user = userRepository.findByEmail(principal.getName()).orElseThrow();
+        return Map.of("contract", interactionService.getContractDraft(user, id));
+    }
+
+    @GetMapping("/rental-requests/{id}/contract")
+    public ResponseEntity<byte[]> downloadContract(Principal principal, @PathVariable Long id) {
+        User user = userRepository.findByEmail(principal.getName()).orElseThrow();
+        var contract = interactionService.getDownloadableContract(user, id);
+        byte[] document = contractDocumentService.createDocument(contract);
+        String filename = "hop-dong-thue-phong-" + id + ".docx";
+        ContentDisposition disposition = ContentDisposition.attachment()
+                .filename(filename, StandardCharsets.UTF_8)
+                .build();
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, disposition.toString())
+                .contentType(MediaType.parseMediaType(
+                        "application/vnd.openxmlformats-officedocument.wordprocessingml.document"))
+                .contentLength(document.length)
+                .body(document);
     }
 
     @PostMapping("/rooms/{roomId}/survey")
@@ -90,7 +141,22 @@ public class InteractionController {
 
     public record RentalRequest(@NotNull LocalDate moveInDate, @NotBlank String note) {}
 
-    public record RentalStatusRequest(@NotNull RentalStatus status) {}
+    public record HoldRoomRequest(
+            @JsonFormat(pattern = "yyyy-MM-dd") LocalDate moveInDate,
+            String note) {}
+
+        public record RentalStatusRequest(
+            @NotNull RentalStatus status,
+            @JsonFormat(pattern = "yyyy-MM-dd") LocalDate startDate,
+            @JsonFormat(pattern = "yyyy-MM-dd") LocalDate endDate,
+            Long deposit,
+            Long rent,
+            String paymentCycle,
+            String tenantCccd,
+            String tenantAddress,
+            String residenceAddress,
+            ResidenceType residenceType
+        ) {}
 
     public record SurveyRequest(int cleanlinessRating, int securityRating, int convenienceRating, String comment) {}
 }

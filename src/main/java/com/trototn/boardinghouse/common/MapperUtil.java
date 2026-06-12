@@ -18,13 +18,14 @@ public class MapperUtil {
     public static Responses.UserView toUserView(User user) {
         if (user == null) return null;
         return new Responses.UserView(user.getId(), user.getFullName(), user.getEmail(), user.getPhone(),
-                user.getAddress(), user.getRole(), user.isActive(), user.isLocked());
+            user.getAddress(), user.getCccd(), user.getDateOfBirth(), user.getRole(), user.isActive(), user.isLocked());
     }
 
     public static Responses.UserDetail toUserDetail(User user) {
         if (user == null) return null;
         return new Responses.UserDetail(user.getId(), user.getFullName(), user.getEmail(), user.getPhone(),
-                user.getAddress(), user.getRole(), user.isActive(), user.isLocked(), user.getCreatedAt());
+            user.getAddress(), user.getCccd(), user.getDateOfBirth(), user.getRole(), user.isActive(), user.isLocked(),
+            user.getCreatedAt());
     }
 
     public static Responses.SurveyView toSurveyView(Survey survey) {
@@ -53,6 +54,9 @@ public class MapperUtil {
                 room.getPrice(),
                 room.getSize(),
                 room.getCapacity(),
+                room.getTotalRooms() != null ? room.getTotalRooms() : 1,
+                room.getAvailableRooms() != null ? room.getAvailableRooms()
+                        : room.getStatus() == com.trototn.boardinghouse.room.domain.RoomStatus.OCCUPIED ? 0 : 1,
                 amenities,
                 safeFeaturedImage(room.getFeaturedImage(), imageUrls),
                 imageUrls,
@@ -112,14 +116,22 @@ public class MapperUtil {
     }
 
     public static Responses.RentalRequestView toRentalView(RentalRequest r) {
+        return toRentalView(r, false);
+    }
+
+    public static Responses.RentalRequestView toRentalView(RentalRequest r, boolean contractAvailable) {
         return new Responses.RentalRequestView(
                 r.getId(),
                 toMiniRoom(r.getRoom()),
                 toMiniUser(r.getTenant()),
                 toMiniUser(r.getLandlord()),
+                r.getPhysicalRoom() != null ? r.getPhysicalRoom().getId() : null,
+                r.getPhysicalRoom() != null ? r.getPhysicalRoom().getRoomNumber() : null,
                 r.getMoveInDate(),
                 r.getNote(),
                 r.getStatus(),
+                contractAvailable,
+                r.getExpiresAt(),
                 r.getUpdatedAt()
         );
     }

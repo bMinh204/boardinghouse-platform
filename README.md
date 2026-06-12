@@ -76,12 +76,14 @@ Truy cap:
 
 - `http://localhost:8080`
 
-## Tai khoan seed
+## Tai khoan bootstrap admin
 
-- He thong tao admin mac dinh dua tren bien cau hinh trong `application.properties`:
-  - `app.bootstrap-admin-email=admin@trototn.vn`
-  - `app.bootstrap-admin-password=admin123`
-- Neu chua co user nay, khi khoi dong se tao moi va gan vai tro ADMIN.
+- Mac dinh khong co tai khoan hoac mat khau admin cong khai.
+- De tao admin trong lan khoi dong dau tien, dat hai bien moi truong:
+  - `APP_BOOTSTRAP_ADMIN_EMAIL`
+  - `APP_BOOTSTRAP_ADMIN_PASSWORD` (toi thieu 12 ky tu)
+- Neu email da ton tai, he thong khong thay doi vai tro, trang thai hay mat khau cua tai khoan do.
+- Sau khi tao admin thanh cong, nen xoa hai bien moi truong bootstrap.
 
 ## Ghi chu
 

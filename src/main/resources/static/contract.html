@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lập hợp đồng thuê trọ | Trọ Tốt ICTU</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=Bricolage+Grotesque:wght@500;700;800&family=Orbitron:wght@500;700&display=swap" rel="stylesheet">
+    <script>
+        (function () {
+            try {
+                const savedTheme = localStorage.getItem("trototn-theme");
+                const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+                document.documentElement.dataset.theme = savedTheme || systemTheme;
+            } catch (error) {
+                document.documentElement.dataset.theme = "dark";
+            }
+        }());
+    </script>
+    <link rel="stylesheet" href="/styles.css?v=mono1">
+</head>
+<body class="auth-page">
+<div class="auth-shell">
+    <header class="topbar">
+        <div><h1>Trọ Tốt ICTU</h1></div>
+        <div class="topbar-actions">
+            <a class="ghost-button link-button" href="/index.html">Về trang chủ</a>
+        </div>
+    </header>
+
+    <section class="auth-card panel">
+        <div class="auth-card-header">
+            <p class="eyebrow">Hợp đồng</p>
+            <h2>Lập hợp đồng thuê phòng trọ</h2>
+        </div>
+
+        <div id="contractLoading" class="empty-state">Đang lấy thông tin người thuê và phòng trọ...</div>
+        <div id="contractAutoInfo" class="contract-auto-info hidden">
+            <section class="contract-party-card">
+                <p class="eyebrow">Bên A - Chủ trọ</p>
+                <div id="landlordInfo" class="room-facts"></div>
+            </section>
+            <section class="contract-party-card">
+                <p class="eyebrow">Bên B - Người thuê</p>
+                <div id="tenantInfo" class="room-facts"></div>
+            </section>
+            <section class="contract-party-card">
+                <p class="eyebrow">Phòng thuê</p>
+                <div id="roomInfo" class="room-facts"></div>
+            </section>
+        </div>
+
+        <form id="contractForm" class="stack-form auth-form hidden">
+            <h3>Điều khoản hợp đồng</h3>
+            <div class="field-group">
+                <label class="field-label" for="tenantCccd">CCCD người thuê</label>
+                <input id="tenantCccd" name="tenantCccd" placeholder="Tự động lấy từ hồ sơ, có thể bổ sung" required>
+            </div>
+            <div class="field-group">
+                <label class="field-label" for="tenantAddress">Địa chỉ thường trú người thuê</label>
+                <input id="tenantAddress" name="tenantAddress" placeholder="Tự động lấy từ hồ sơ, có thể bổ sung" required>
+            </div>
+            <div class="field-group">
+                <label class="field-label" for="rent">Giá thuê (đ/tháng)</label>
+                <input id="rent" name="rent" type="number" min="0" step="1000" required>
+            </div>
+            <div class="field-group">
+                <label class="field-label" for="paymentCycle">Kỳ thanh toán</label>
+                <input id="paymentCycle" name="paymentCycle" placeholder="Ví dụ: Thanh toán vào ngày 05 hàng tháng" required>
+            </div>
+            <div class="field-group">
+                <label class="field-label" for="deposit">Tiền đặt cọc</label>
+                <input id="deposit" name="deposit" type="number" min="0" step="1000" required>
+            </div>
+
+            <h3>Thời hạn hợp đồng</h3>
+            <div class="field-group">
+                <label class="field-label" for="startDate">Từ ngày</label>
+                <input id="startDate" name="startDate" type="date" required>
+            </div>
+            <div class="field-group">
+                <label class="field-label" for="endDate">Đến ngày</label>
+                <input id="endDate" name="endDate" type="date" required>
+            </div>
+
+            <div class="form-actions" style="display: flex; gap: 8px;">
+                <button class="primary-button" type="submit">Duyệt và tạo hợp đồng Word</button>
+                <a class="ghost-button link-button" href="/index.html#landlord">Quay lại</a>
+            </div>
+        </form>
+
+        <div id="contractError" class="empty-state hidden"></div>
+    </section>
+</div>
+
+<div id="toast" class="toast hidden"></div>
+<script src="/theme.js"></script>
+<script src="/contract.js?v=2"></script>
+</body>
+</html>

@@ -2,6 +2,7 @@ package com.trototn.boardinghouse.interaction.domain;
 
 import com.trototn.boardinghouse.auth.domain.User;
 import com.trototn.boardinghouse.room.domain.Room;
+import com.trototn.boardinghouse.room.domain.PhysicalRoom;
 import jakarta.persistence.*;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -18,6 +19,10 @@ public class RentalRequest {
     private Room room;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "physical_room_id")
+    private PhysicalRoom physicalRoom;
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "tenant_id", nullable = false)
     private User tenant;
 
@@ -32,6 +37,8 @@ public class RentalRequest {
 
     @Enumerated(EnumType.STRING)
     private RentalStatus status = RentalStatus.PENDING;
+
+    private Instant expiresAt;
 
     @Column(nullable = false, updatable = false)
     private Instant createdAt;
@@ -66,6 +73,14 @@ public class RentalRequest {
 
     public void setRoom(Room room) {
         this.room = room;
+    }
+
+    public PhysicalRoom getPhysicalRoom() {
+        return physicalRoom;
+    }
+
+    public void setPhysicalRoom(PhysicalRoom physicalRoom) {
+        this.physicalRoom = physicalRoom;
     }
 
     public User getTenant() {
@@ -106,6 +121,14 @@ public class RentalRequest {
 
     public void setStatus(RentalStatus status) {
         this.status = status;
+    }
+
+    public Instant getExpiresAt() {
+        return expiresAt;
+    }
+
+    public void setExpiresAt(Instant expiresAt) {
+        this.expiresAt = expiresAt;
     }
 
     public Instant getCreatedAt() {

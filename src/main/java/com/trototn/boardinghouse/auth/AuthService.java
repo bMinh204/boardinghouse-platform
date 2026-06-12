@@ -3,6 +3,9 @@ package com.trototn.boardinghouse.auth;
 import com.trototn.boardinghouse.auth.domain.Role;
 import com.trototn.boardinghouse.auth.domain.User;
 import com.trototn.boardinghouse.auth.repository.UserRepository;
+
+import java.time.LocalDate;
+
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -16,7 +19,8 @@ public class AuthService {
         this.passwordEncoder = passwordEncoder;
     }
 
-    public User register(String fullName, String email, String password, String phone, String address, Role role) {
+    public User register(String fullName, String email, String password, String phone, String address, LocalDate dateOfBirth, Role role) {
+        Role registrationRole = validatePublicRegistrationRole(role);
         userRepository.findByEmail(email).ifPresent(u -> {
             throw new IllegalArgumentException("Email đã tồn tại");
         });
@@ -26,8 +30,17 @@ public class AuthService {
         user.setPasswordHash(passwordEncoder.encode(password));
         user.setPhone(phone);
         user.setAddress(address);
-        user.setRole(role);
+        user.setDateOfBirth(dateOfBirth);
+        user.setRole(registrationRole);
         user.setActive(false); // Tài khoản sẽ ở trạng thái chưa kích hoạt
         return userRepository.save(user);
+    }
+
+    private Role validatePublicRegistrationRole(Role requestedRole) {
+        Role role = requestedRole == null ? Role.TENANT : requestedRole;
+        if (role != Role.TENANT && role != Role.LANDLORD) {
+            throw new IllegalArgumentException("Vai trò đăng ký không hợp lệ");
+        }
+        return role;
     }
 }

@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sơ đồ phòng | Trọ Tốt ICTU</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=Bricolage+Grotesque:wght@500;700;800&display=swap" rel="stylesheet">
+    <script>
+        (function () {
+            try {
+                const savedTheme = localStorage.getItem("trototn-theme");
+                const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+                document.documentElement.dataset.theme = savedTheme || systemTheme;
+            } catch (error) {
+                document.documentElement.dataset.theme = "dark";
+            }
+        }());
+    </script>
+    <link rel="stylesheet" href="/styles.css?v=room-layout-1">
+</head>
+<body>
+<div class="page-shell room-detail-page">
+    <header class="topbar">
+        <a class="room-detail-brand" href="/">
+            <img src="/ictu-logo.jpg" alt="Logo ICTU">
+            <span>Trọ Tốt ICTU</span>
+        </a>
+        <div class="topbar-actions">
+            <button class="ghost-button theme-toggle" type="button" data-theme-toggle>
+                <span class="theme-toggle-track" aria-hidden="true"><span class="theme-toggle-thumb"></span></span>
+                <span data-theme-label>Giao diện sáng</span>
+            </button>
+            <a id="authLink" class="ghost-button link-button" href="/auth.html">Đăng nhập / Đăng ký</a>
+            <button id="logoutBtn" class="ghost-button hidden" type="button">Đăng xuất</button>
+        </div>
+    </header>
+
+    <nav class="room-detail-breadcrumb" aria-label="Điều hướng">
+        <a href="/">Trang chủ</a>
+        <span>/</span>
+        <a id="detailLink" href="#">Chi tiết nhà trọ</a>
+        <span>/</span>
+        <strong>Sơ đồ phòng</strong>
+    </nav>
+
+    <main class="room-layout-page">
+        <section id="layoutSummary" class="panel">
+            <div class="empty-state">Đang tải sơ đồ phòng...</div>
+        </section>
+
+        <section id="layoutManager" class="panel hidden">
+            <div class="section-header">
+                <div>
+                    <p class="eyebrow">Quản lý sơ đồ</p>
+                    <h2>Thêm khu hoặc tầng</h2>
+                </div>
+            </div>
+            <form id="sectionForm" class="layout-section-form">
+                <label class="field-group">
+                    <span class="field-label">Tên khu/tầng</span>
+                    <input name="name" placeholder="Ví dụ: Tầng 1, Khu A" required>
+                </label>
+                <label class="field-group">
+                    <span class="field-label">Thứ tự hiển thị</span>
+                    <input name="displayOrder" type="number" min="0" placeholder="Tự động">
+                </label>
+                <button class="primary-button" type="submit">Thêm khu/tầng</button>
+            </form>
+            <p class="muted-text">Mỗi nhà trọ tự tạo số khu, số tầng và số phòng phù hợp với thực tế.</p>
+        </section>
+
+        <section class="panel">
+            <div class="section-header">
+                <div>
+                    <p class="eyebrow">Trạng thái trực quan</p>
+                    <h2>Sơ đồ phòng vật lý</h2>
+                </div>
+            </div>
+            <div class="layout-legend">
+                <span><i class="room-status-dot available"></i>Còn trống</span>
+                <span><i class="room-status-dot held"></i>Đang giữ</span>
+                <span><i class="room-status-dot occupied"></i>Đã thuê</span>
+                <span><i class="room-status-dot expiring"></i>Sắp hết hợp đồng</span>
+                <span><i class="room-status-dot maintenance"></i>Bảo trì</span>
+            </div>
+            <div id="sectionList" class="layout-section-list">
+                <div class="empty-state">Đang tải dữ liệu...</div>
+            </div>
+        </section>
+    </main>
+</div>
+
+<dialog id="holdRoomDialog" class="hold-room-dialog">
+    <form id="holdRoomForm" class="stack-form">
+        <div class="section-header">
+            <div>
+                <p class="eyebrow">Giữ phòng 24 giờ</p>
+                <h2 id="holdRoomTitle">Chọn phòng</h2>
+            </div>
+            <button class="ghost-button" type="button" data-action="close-hold-dialog">Đóng</button>
+        </div>
+        <input name="physicalRoomId" type="hidden">
+        <label class="field-group">
+            <span class="field-label">Ngày dự kiến vào ở</span>
+            <input name="moveInDate" type="date" required>
+        </label>
+        <label class="field-group">
+            <span class="field-label">Ghi chú cho chủ trọ</span>
+            <textarea name="note" placeholder="Nhu cầu thuê, thời hạn dự kiến..."></textarea>
+        </label>
+        <div class="hold-notice">
+            Phòng sẽ chuyển sang trạng thái đang giữ. Nếu chủ trọ không xử lý trong 24 giờ, hệ thống tự trả phòng về còn trống.
+        </div>
+        <button class="primary-button" type="submit">Xác nhận giữ phòng</button>
+    </form>
+</dialog>
+
+<div id="toast" class="toast hidden"></div>
+<script src="/theme.js"></script>
+<script src="/room-layout.js?v=3"></script>
+</body>
+</html>

@@ -25,6 +25,8 @@ public class Room {
     private Long price;
     private Double size;
     private Integer capacity;
+    private Integer totalRooms;
+    private Integer availableRooms;
 
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "room_amenities", joinColumns = @JoinColumn(name = "room_id"))
@@ -161,6 +163,22 @@ public class Room {
 
     public void setCapacity(Integer capacity) {
         this.capacity = capacity;
+    }
+
+    public Integer getTotalRooms() {
+        return totalRooms;
+    }
+
+    public void setTotalRooms(Integer totalRooms) {
+        this.totalRooms = totalRooms;
+    }
+
+    public Integer getAvailableRooms() {
+        return availableRooms;
+    }
+
+    public void setAvailableRooms(Integer availableRooms) {
+        this.availableRooms = availableRooms;
     }
 
     public List<String> getAmenities() {

@@ -9,6 +9,8 @@ import jakarta.servlet.http.HttpSession;
 import jakarta.validation.constraints.Size;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -25,6 +27,8 @@ import org.springframework.mail.MailException;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.crypto.password.PasswordEncoder;
+
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.trototn.boardinghouse.auth.domain.AccountActivationToken;
 import com.trototn.boardinghouse.auth.repository.AccountActivationTokenRepository;
 import com.trototn.boardinghouse.auth.domain.PasswordResetToken;
@@ -35,6 +39,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.HexFormat;
 import java.util.UUID;
@@ -66,9 +71,10 @@ public class AuthController {
     @Value("${spring.mail.password:}")
     private String mailPassword;
 
-    public AuthController(AuthService authService, AuthenticationManager authenticationManager, UserRepository userRepository,
-                          PasswordResetTokenRepository tokenRepository, JavaMailSender mailSender, PasswordEncoder passwordEncoder,
-                          AccountActivationTokenRepository activationTokenRepository) {
+    public AuthController(AuthService authService, AuthenticationManager authenticationManager,
+            UserRepository userRepository,
+            PasswordResetTokenRepository tokenRepository, JavaMailSender mailSender, PasswordEncoder passwordEncoder,
+            AccountActivationTokenRepository activationTokenRepository) {
         this.authService = authService;
         this.authenticationManager = authenticationManager;
         this.userRepository = userRepository;
@@ -83,8 +89,8 @@ public class AuthController {
         if (request.password() == null || request.password().length() < 6) {
             throw new IllegalArgumentException("Mật khẩu tối thiểu 6 ký tự");
         }
-        Role role = request.role() != null ? request.role() : Role.TENANT;
-        User user = authService.register(request.fullName(), request.email(), request.password(), request.phone(), request.address(), role);
+        User user = authService.register(request.fullName(), request.email(), request.password(), request.phone(),
+            request.address(), request.dateOfBirth(), request.role());
 
         // Tạo và gửi link kích hoạt
         String otp = generateOtp();
@@ -204,14 +210,15 @@ public class AuthController {
         if (email == null || email.isBlank()) {
             throw new IllegalArgumentException("Vui lòng nhập email");
         }
-        
-        // Bảo mật: Chống rò rỉ dò quét email (Email enumeration). Luôn trả về cùng một câu thông báo
+
+        // Bảo mật: Chống rò rỉ dò quét email (Email enumeration). Luôn trả về cùng một
+        // câu thông báo
         Optional<User> userOpt = userRepository.findByEmail(email);
         if (userOpt.isPresent()) {
             User user = userOpt.get();
             String otp = generateOtp();
             String token = otpToken(otp);
-            
+
             PasswordResetToken resetToken = tokenRepository.findByUserId(user.getId())
                     .orElse(new PasswordResetToken());
             resetToken.setUser(user);
@@ -238,7 +245,8 @@ public class AuthController {
                 return ResponseEntity.ok(response);
             }
         }
-        return ResponseEntity.ok(Map.of("message", "Nếu email hợp lệ và tồn tại trong hệ thống, một liên kết khôi phục đã được gửi."));
+        return ResponseEntity.ok(
+                Map.of("message", "Nếu email hợp lệ và tồn tại trong hệ thống, một liên kết khôi phục đã được gửi."));
     }
 
     @GetMapping("/activate-account")
@@ -373,7 +381,7 @@ public class AuthController {
             if (!user.isActive()) {
                 AccountActivationToken activationToken = activationTokenRepository.findByUserId(user.getId())
                         .orElse(new AccountActivationToken());
-                
+
                 String otp = generateOtp();
                 String token = otpToken(otp);
                 activationToken.setUser(user);
@@ -385,12 +393,14 @@ public class AuthController {
                 SimpleMailMessage message = new SimpleMailMessage();
                 message.setTo(user.getEmail());
                 message.setSubject("Gui lai ma OTP kich hoat tai khoan - Tro Tot ICTU");
-                message.setText("Chao " + user.getFullName() + ",\n\nMa OTP kich hoat moi cua ban la: " + otp + "\nMa nay se het han sau 10 phut.\n\nLink du phong: " + activationLink + "\n");
+                message.setText("Chao " + user.getFullName() + ",\n\nMa OTP kich hoat moi cua ban la: " + otp
+                        + "\nMa nay se het han sau 10 phut.\n\nLink du phong: " + activationLink + "\n");
                 sendMail(message);
             }
         });
 
-        return ResponseEntity.ok(Map.of("message", "Nếu tài khoản chưa được kích hoạt, một email xác nhận mới đã được gửi."));
+        return ResponseEntity
+                .ok(Map.of("message", "Nếu tài khoản chưa được kích hoạt, một email xác nhận mới đã được gửi."));
     }
 
     private String generateOtp() {
@@ -402,7 +412,8 @@ public class AuthController {
     }
 
     private String normalizeOtp(String otp) {
-        if (otp == null) return null;
+        if (otp == null)
+            return null;
         String normalized = otp.replaceAll("\\D", "");
         return normalized.length() == 6 ? normalized : null;
     }
@@ -424,15 +435,26 @@ public class AuthController {
     }
 
     public record RegisterRequest(
+
             @NotBlank String fullName,
+
             @Email String email,
+
             @NotBlank @Size(min = 6) String password,
-            String phone,
+
+            @Pattern(regexp = "^(0|\\+84)[0-9]{9}$", message = "Số điện thoại không hợp lệ") String phone,
+
             String address,
+
+            @JsonFormat(pattern = "yyyy-MM-dd") LocalDate dateOfBirth,
+
             Role role
+
     ) {}
 
-    public record LoginRequest(@Email String email, @NotBlank String password) {}
+    public record LoginRequest(@Email String email, @NotBlank String password) {
+    }
 
-    public record ChangePasswordRequest(String oldPassword, String newPassword, String confirmPassword) {}
+    public record ChangePasswordRequest(String oldPassword, String newPassword, String confirmPassword) {
+    }
 }

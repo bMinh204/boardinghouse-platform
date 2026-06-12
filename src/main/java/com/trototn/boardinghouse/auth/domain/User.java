@@ -2,6 +2,7 @@ package com.trototn.boardinghouse.auth.domain;
 
 import jakarta.persistence.*;
 import java.time.Instant;
+import java.time.LocalDate;
 
 @Entity
 @Table(name = "users")
@@ -13,6 +14,9 @@ public class User {
     @Column(nullable = false)
     private String fullName;
 
+    @Column(name = "date_of_birth")
+    private LocalDate dateOfBirth;
+
     @Column(nullable = false, unique = true)
     private String email;
 
@@ -21,6 +25,9 @@ public class User {
 
     private String phone;
     private String address;
+
+    @Column(name = "cccd", length = 20)
+    private String cccd;
 
     @Column(nullable = false, columnDefinition = "boolean default true")
     private boolean active = true;
@@ -50,6 +57,14 @@ public class User {
 
     public void setFullName(String fullName) {
         this.fullName = fullName;
+    }
+
+    public LocalDate getDateOfBirth() {
+        return dateOfBirth;
+    }
+
+    public void setDateOfBirth(LocalDate dateOfBirth) {
+        this.dateOfBirth = dateOfBirth;
     }
 
     public String getEmail() {
@@ -82,6 +97,14 @@ public class User {
 
     public void setAddress(String address) {
         this.address = address;
+    }
+
+    public String getCccd() {
+        return cccd;
+    }
+
+    public void setCccd(String cccd) {
+        this.cccd = cccd;
     }
 
     public boolean isActive() {

@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="760" viewBox="0 0 900 760">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#222"/>
+    </marker>
+    <style>
+      .title { font: 700 24px "Times New Roman", serif; fill: #111; }
+      .label { font: 700 20px "Times New Roman", serif; fill: #111; }
+      .text { font: 18px "Times New Roman", serif; fill: #111; }
+      .small { font: 16px "Times New Roman", serif; fill: #111; }
+      .box { fill: #fff; stroke: #222; stroke-width: 2; rx: 4; }
+      .component { fill: #f7f7f7; stroke: #777; stroke-width: 1.5; rx: 5; }
+      .line { stroke: #222; stroke-width: 2; fill: none; marker-end: url(#arrow); }
+      .dash { stroke: #555; stroke-width: 1.5; stroke-dasharray: 6 5; fill: none; marker-end: url(#arrow); }
+      .caption { font: 700 17px "Times New Roman", serif; fill: #111; }
+    </style>
+  </defs>
+
+  <rect width="900" height="760" fill="#fff"/>
+  <text x="450" y="38" class="title" text-anchor="middle">Kiến trúc Tổng quan Hệ thống</text>
+
+  <text x="60" y="75" class="label">Frontend (Client)</text>
+  <rect x="45" y="82" width="810" height="250" class="box"/>
+
+  <rect x="95" y="118" width="185" height="72" class="component"/>
+  <text x="187.5" y="160" class="text" text-anchor="middle">Trang người thuê</text>
+
+  <rect x="355" y="118" width="190" height="72" class="component"/>
+  <text x="450" y="148" class="text" text-anchor="middle">Quản lý chủ trọ</text>
+  <text x="450" y="170" class="small" text-anchor="middle">Đăng/Cập nhật phòng</text>
+
+  <rect x="620" y="118" width="180" height="72" class="component"/>
+  <text x="710" y="160" class="text" text-anchor="middle">Admin Dashboard</text>
+
+  <rect x="230" y="235" width="245" height="70" class="component"/>
+  <text x="352.5" y="278" class="text" text-anchor="middle">HTML / CSS / JavaScript</text>
+
+  <rect x="545" y="235" width="185" height="70" class="component"/>
+  <text x="637.5" y="266" class="text" text-anchor="middle">Chat Widget</text>
+  <text x="637.5" y="288" class="small" text-anchor="middle">Tư vấn phòng trọ</text>
+
+  <path d="M188 190 L300 235" class="line"/>
+  <path d="M450 190 L400 235" class="line"/>
+  <path d="M710 190 L475 246" class="line"/>
+  <path d="M638 235 L475 270" class="line"/>
+
+  <path d="M450 332 L450 392" class="line"/>
+  <text x="470" y="365" class="caption">HTTPS / JSON</text>
+
+  <text x="300" y="410" class="label">Backend (Server)</text>
+  <rect x="285" y="418" width="330" height="220" class="box"/>
+
+  <rect x="355" y="455" width="190" height="64" class="component"/>
+  <text x="450" y="493" class="text" text-anchor="middle">RESTful API</text>
+
+  <path d="M450 519 L450 560" class="line"/>
+
+  <rect x="330" y="560" width="240" height="64" class="component"/>
+  <text x="450" y="586" class="text" text-anchor="middle">Business Services</text>
+  <text x="450" y="608" class="small" text-anchor="middle">Auth, Room, Chat, Report</text>
+
+  <rect x="70" y="680" width="210" height="58" class="component"/>
+  <text x="175" y="715" class="text" text-anchor="middle">MySQL Database</text>
+
+  <rect x="345" y="680" width="210" height="58" class="component"/>
+  <text x="450" y="715" class="text" text-anchor="middle">Upload Ảnh Phòng</text>
+
+  <rect x="620" y="680" width="210" height="58" class="component"/>
+  <text x="725" y="705" class="text" text-anchor="middle">Chatbot Service</text>
+  <text x="725" y="727" class="small" text-anchor="middle">Gợi ý phòng phù hợp</text>
+
+  <path d="M390 624 L210 680" class="line"/>
+  <path d="M450 624 L450 680" class="line"/>
+  <path d="M515 624 L690 680" class="line"/>
+
+  <text x="92" y="658" class="small">Lưu user, phòng, yêu cầu, tin nhắn</text>
+  <text x="575" y="657" class="small">Phân tích tiêu chí tìm phòng</text>
+</svg>

@@ -4,5 +4,6 @@ public enum RentalStatus {
     PENDING,
     APPROVED,
     REJECTED,
-    CANCELLED
+    CANCELLED,
+    EXPIRED
 }

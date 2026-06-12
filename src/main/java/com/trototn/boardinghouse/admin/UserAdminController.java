@@ -1,5 +1,6 @@
 package com.trototn.boardinghouse.admin;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.trototn.boardinghouse.auth.domain.Role;
 import com.trototn.boardinghouse.auth.domain.User;
 import com.trototn.boardinghouse.common.dto.Responses;
@@ -13,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -77,6 +79,10 @@ public class UserAdminController {
         targetUser.setFullName(fullName);
         targetUser.setPhone(normalizeOptional(request.phone()));
         targetUser.setAddress(normalizeOptional(request.address()));
+        targetUser.setCccd(normalizeOptional(request.cccd()));
+        if (request.dateOfBirth() != null) {
+            targetUser.setDateOfBirth(request.dateOfBirth());
+        }
         userRepository.save(targetUser);
 
         return Map.of("user", MapperUtil.toUserView(targetUser));
@@ -122,6 +128,7 @@ public class UserAdminController {
     }
 
     private void deleteUserDependencies(Long userId) {
+        executeDelete("update physical_rooms set held_by_id = null, hold_expires_at = null, status = 'AVAILABLE' where held_by_id = :userId", userId);
         executeDelete("delete m from messages m join conversations c on m.conversation_id = c.id where c.tenant_id = :userId or c.landlord_id = :userId or c.room_id in (select id from rooms where owner_id = :userId)", userId);
         executeDelete("delete cm from chat_messages cm join conversations c on cm.conversation_id = c.id where c.tenant_id = :userId or c.landlord_id = :userId or c.room_id in (select id from rooms where owner_id = :userId)", userId);
         executeDelete("delete from messages where sender_id = :userId", userId);
@@ -129,7 +136,11 @@ public class UserAdminController {
         executeDelete("delete from conversations where tenant_id = :userId or landlord_id = :userId or room_id in (select id from rooms where owner_id = :userId)", userId);
         executeDelete("delete from favorites where tenant_id = :userId or user_id = :userId or room_id in (select id from rooms where owner_id = :userId)", userId);
         executeDelete("delete from surveys where user_id = :userId or room_id in (select id from rooms where owner_id = :userId)", userId);
+        executeDelete("delete from temporary_residence where tenant_id = :userId or landlord_id = :userId or room_id in (select id from rooms where owner_id = :userId)", userId);
+        executeDelete("delete from rental_contracts where tenant_id = :userId or landlord_id = :userId or room_id in (select id from rooms where owner_id = :userId)", userId);
         executeDelete("delete from rental_requests where tenant_id = :userId or landlord_id = :userId or room_id in (select id from rooms where owner_id = :userId)", userId);
+        executeDelete("delete from physical_rooms where room_id in (select id from rooms where owner_id = :userId)", userId);
+        executeDelete("delete from room_sections where room_id in (select id from rooms where owner_id = :userId)", userId);
         executeDelete("delete from room_views where viewer_id = :userId or room_id in (select id from rooms where owner_id = :userId)", userId);
         executeDelete("delete from room_amenities where room_id in (select id from rooms where owner_id = :userId)", userId);
         executeDelete("delete from room_images where room_id in (select id from rooms where owner_id = :userId)", userId);
@@ -161,7 +172,8 @@ public class UserAdminController {
         return value.trim();
     }
 
-    public record UpdateProfileRequest(String fullName, String phone, String address) {}
+    public record UpdateProfileRequest(String fullName, String phone, String address, String cccd,
+                                       @JsonFormat(pattern = "yyyy-MM-dd") LocalDate dateOfBirth) {}
 
     public record UpdateRoleRequest(Role role) {}
 

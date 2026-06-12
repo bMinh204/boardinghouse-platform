@@ -141,6 +141,8 @@ public class RoomController {
             Long price,
             Double size,
             Integer capacity,
+            Integer totalRooms,
+            Integer availableRooms,
             List<String> amenities,
             String featuredImage,
             List<String> imageUrls,
@@ -161,6 +163,8 @@ public class RoomController {
             r.setPrice(price);
             r.setSize(size);
             r.setCapacity(capacity);
+            r.setTotalRooms(totalRooms);
+            r.setAvailableRooms(availableRooms);
             r.setAmenities(amenities);
             r.setFeaturedImage(featuredImage);
             r.setImageUrls(imageUrls);

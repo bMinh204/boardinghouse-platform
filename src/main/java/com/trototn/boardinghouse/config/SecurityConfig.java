@@ -46,7 +46,7 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(HttpMethod.GET, "/", "/index.html", "/auth.html", "/profile.html", "/reset-password.html", "/styles.css", "/app.js", "/browse.js", "/auth.js", "/profile.js", "/theme.js", "/favicon.ico").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/", "/index.html", "/auth.html", "/profile.html", "/room-detail.html", "/room-layout.html", "/reset-password.html", "/styles.css", "/browse.js", "/auth.js", "/profile.js", "/room-detail.js", "/room-layout.js", "/theme.js", "/favicon.ico").permitAll()
                         .requestMatchers(HttpMethod.GET, "/*.jpg", "/*.jpeg", "/*.png", "/*.gif", "/*.webp", "/*.svg", "/*.ico").permitAll()
                         .requestMatchers("/api/auth/register", "/api/auth/login", "/api/auth/me", "/api/auth/logout", "/api/auth/activate-account", "/api/auth/resend-activation", "/api/auth/forgot-password", "/api/auth/reset-password").permitAll()
                         .requestMatchers("/api/chatbot").permitAll()

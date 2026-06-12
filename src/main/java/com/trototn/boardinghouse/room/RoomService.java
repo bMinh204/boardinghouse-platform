@@ -117,6 +117,8 @@ public class RoomService {
         room.setPrice(payload.getPrice());
         room.setSize(payload.getSize());
         room.setCapacity(payload.getCapacity());
+        room.setTotalRooms(payload.getTotalRooms());
+        room.setAvailableRooms(payload.getAvailableRooms());
         room.setAmenities(payload.getAmenities());
         room.setFeaturedImage(payload.getFeaturedImage());
         room.setImageUrls(payload.getImageUrls());
@@ -149,7 +151,11 @@ public class RoomService {
         executeDelete("delete from conversations where room_id = :roomId", roomId);
         executeDelete("delete from favorites where room_id = :roomId", roomId);
         executeDelete("delete from surveys where room_id = :roomId", roomId);
+        executeDelete("delete from temporary_residence where room_id = :roomId", roomId);
+        executeDelete("delete from rental_contracts where room_id = :roomId", roomId);
         executeDelete("delete from rental_requests where room_id = :roomId", roomId);
+        executeDelete("delete from physical_rooms where room_id = :roomId", roomId);
+        executeDelete("delete from room_sections where room_id = :roomId", roomId);
         executeDelete("delete from room_views where room_id = :roomId", roomId);
         executeDelete("delete from room_amenities where room_id = :roomId", roomId);
         executeDelete("delete from room_images where room_id = :roomId", roomId);
@@ -166,6 +172,12 @@ public class RoomService {
         Room room = roomRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Room not found"));
         assertCanManageRoom(currentUser, room);
         room.setStatus(status);
+        if (status == RoomStatus.OCCUPIED) {
+            room.setAvailableRooms(0);
+        } else if (status == RoomStatus.AVAILABLE
+                && (room.getAvailableRooms() == null || room.getAvailableRooms() == 0)) {
+            room.setAvailableRooms(Math.min(1, room.getTotalRooms() == null ? 1 : room.getTotalRooms()));
+        }
     }
 
     private void assertCanManageRoom(User actor, Room room) {
@@ -200,6 +212,15 @@ public class RoomService {
         if (room.getCapacity() == null || room.getCapacity() <= 0) {
             throw new IllegalArgumentException("Số người phải lớn hơn 0");
         }
+        if (room.getTotalRooms() == null || room.getTotalRooms() <= 0) {
+            throw new IllegalArgumentException("Tổng số phòng phải lớn hơn 0");
+        }
+        if (room.getAvailableRooms() == null || room.getAvailableRooms() < 0) {
+            throw new IllegalArgumentException("Số phòng còn trống không được nhỏ hơn 0");
+        }
+        if (room.getAvailableRooms() > room.getTotalRooms()) {
+            throw new IllegalArgumentException("Số phòng còn trống không được vượt quá tổng số phòng");
+        }
         boolean hasAnyImage = isValidImageUrl(room.getFeaturedImage()) ||
                 (room.getImageUrls() != null && room.getImageUrls().stream().anyMatch(this::isValidImageUrl));
         if (!hasAnyImage) {
@@ -211,6 +232,10 @@ public class RoomService {
     }
 
     private void sanitizeRoom(Room room) {
+        if (room.getAvailableRooms() != null
+                && (room.getStatus() == RoomStatus.AVAILABLE || room.getStatus() == RoomStatus.OCCUPIED)) {
+            room.setStatus(room.getAvailableRooms() > 0 ? RoomStatus.AVAILABLE : RoomStatus.OCCUPIED);
+        }
         if (room.getFeaturedImage() != null) {
             String featuredImage = room.getFeaturedImage().trim();
             room.setFeaturedImage(isValidImageUrl(featuredImage) ? featuredImage : null);
