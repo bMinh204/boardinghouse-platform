@@ -14,8 +14,6 @@ import org.springframework.test.util.ReflectionTestUtils;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -28,20 +26,22 @@ class DataInitializerTest {
     private PasswordEncoder passwordEncoder;
 
     @Test
-    void existingAccountIsNeverModified() {
+    void existingAccountIsPromotedAndPasswordIsReset() {
         User existing = new User();
         existing.setRole(Role.TENANT);
         existing.setPasswordHash("existing-hash");
         when(userRepository.findByEmail("existing@example.com")).thenReturn(Optional.of(existing));
+        when(passwordEncoder.matches("strong-password-123", "existing-hash")).thenReturn(false);
+        when(passwordEncoder.encode("strong-password-123")).thenReturn("new-hash");
         DataInitializer initializer = configuredInitializer(
                 "existing@example.com", "strong-password-123");
 
         initializer.run(null);
 
-        verify(userRepository, never()).save(any());
-        verify(passwordEncoder, never()).encode(any());
-        assertEquals(Role.TENANT, existing.getRole());
-        assertEquals("existing-hash", existing.getPasswordHash());
+        verify(userRepository).save(existing);
+        verify(passwordEncoder).encode("strong-password-123");
+        assertEquals(Role.ADMIN, existing.getRole());
+        assertEquals("new-hash", existing.getPasswordHash());
     }
 
     @Test

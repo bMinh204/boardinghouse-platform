@@ -38,23 +38,30 @@ public class DataInitializer implements ApplicationRunner {
             return;
         }
         String normalizedEmail = adminEmail.trim().toLowerCase(Locale.ROOT);
-        if (userRepository.findByEmail(normalizedEmail).isPresent()) {
-            logger.info("Bootstrap admin account already exists; credentials were left unchanged");
-            return;
-        }
         if (adminPassword.length() < MIN_BOOTSTRAP_PASSWORD_LENGTH) {
             throw new IllegalStateException("Bootstrap admin password must contain at least 12 characters");
         }
 
-        User admin = new User();
-        admin.setFullName("System Admin");
-        admin.setEmail(normalizedEmail);
-        admin.setPasswordHash(passwordEncoder.encode(adminPassword));
-        admin.setRole(Role.ADMIN);
-        admin.setLocked(false);
-        admin.setActive(true);
-        userRepository.save(admin);
-        logger.info("Bootstrap admin account was created");
+        userRepository.findByEmail(normalizedEmail).ifPresentOrElse(existing -> {
+            existing.setRole(Role.ADMIN);
+            existing.setLocked(false);
+            existing.setActive(true);
+            if (!passwordEncoder.matches(adminPassword, existing.getPasswordHash())) {
+                existing.setPasswordHash(passwordEncoder.encode(adminPassword));
+            }
+            userRepository.save(existing);
+            logger.info("Bootstrap admin account was updated");
+        }, () -> {
+            User admin = new User();
+            admin.setFullName("System Admin");
+            admin.setEmail(normalizedEmail);
+            admin.setPasswordHash(passwordEncoder.encode(adminPassword));
+            admin.setRole(Role.ADMIN);
+            admin.setLocked(false);
+            admin.setActive(true);
+            userRepository.save(admin);
+            logger.info("Bootstrap admin account was created");
+        });
     }
 
 }
