@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: trototn-boardinghouse
+    runtime: docker
+    plan: free
+    autoDeploy: true
+    envVars:
+      - key: DB_URL
+        sync: false
+      - key: DB_USERNAME
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: APP_FRONTEND_URL
+        sync: false
+      - key: APP_UPLOAD_PROVIDER
+        value: local
+      - key: CHATBOT_PROVIDER
+        value: local
