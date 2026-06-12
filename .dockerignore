@@ -4,7 +4,6 @@
 .vscode
 target
 logs-archive
-uploads
 *.log
 *.pid
 .env

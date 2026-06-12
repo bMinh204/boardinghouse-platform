@@ -11,6 +11,7 @@ FROM eclipse-temurin:17-jre
 
 WORKDIR /app
 COPY --from=build /app/target/boardinghouse-platform-0.0.1-SNAPSHOT.jar app.jar
+COPY uploads ./uploads
 
 EXPOSE 8080
 ENTRYPOINT ["sh", "-c", "java ${JAVA_OPTS:-} -jar app.jar --server.port=${PORT:-8080}"]
