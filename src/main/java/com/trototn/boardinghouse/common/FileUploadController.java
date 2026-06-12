@@ -15,6 +15,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.URI;
+import java.net.URLDecoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -59,6 +60,9 @@ public class FileUploadController {
 
     @Value("${app.cloudinary.api-secret:}")
     private String cloudinaryApiSecret;
+
+    @Value("${CLOUDINARY_URL:}")
+    private String cloudinaryUrl;
 
     @Value("${app.cloudinary.folder:trototn/rooms}")
     private String cloudinaryFolder;
@@ -115,19 +119,19 @@ public class FileUploadController {
     }
 
     private String uploadToCloudinary(MultipartFile file) throws IOException, InterruptedException, NoSuchAlgorithmException {
-        requireCloudinaryConfig();
+        CloudinaryConfig config = cloudinaryConfig();
 
         String publicId = UUID.randomUUID().toString();
         long timestamp = Instant.now().getEpochSecond();
         String signaturePayload = "folder=" + cloudinaryFolder
                 + "&public_id=" + publicId
                 + "&timestamp=" + timestamp
-                + cloudinaryApiSecret;
+                + config.apiSecret();
         String signature = sha1(signaturePayload);
         String boundary = "----TroTotTNU" + UUID.randomUUID();
 
         byte[] body = multipartBody(boundary, List.of(
-                Part.text("api_key", cloudinaryApiKey),
+                Part.text("api_key", config.apiKey()),
                 Part.text("timestamp", String.valueOf(timestamp)),
                 Part.text("folder", cloudinaryFolder),
                 Part.text("public_id", publicId),
@@ -136,7 +140,7 @@ public class FileUploadController {
         ));
 
         HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create("https://api.cloudinary.com/v1_1/" + cloudinaryCloudName + "/image/upload"))
+                .uri(URI.create("https://api.cloudinary.com/v1_1/" + config.cloudName() + "/image/upload"))
                 .header("Content-Type", "multipart/form-data; boundary=" + boundary)
                 .POST(HttpRequest.BodyPublishers.ofByteArray(body))
                 .build();
@@ -161,6 +165,42 @@ public class FileUploadController {
         }
     }
 
+    private CloudinaryConfig cloudinaryConfig() {
+        String cloudName = trimToNull(cloudinaryCloudName);
+        String apiKey = trimToNull(cloudinaryApiKey);
+        String apiSecret = trimToNull(cloudinaryApiSecret);
+        if ((cloudName == null || apiKey == null || apiSecret == null) && !isBlank(cloudinaryUrl)) {
+            CloudinaryConfig parsed = parseCloudinaryUrl(cloudinaryUrl);
+            cloudName = cloudName != null ? cloudName : parsed.cloudName();
+            apiKey = apiKey != null ? apiKey : parsed.apiKey();
+            apiSecret = apiSecret != null ? apiSecret : parsed.apiSecret();
+        }
+        if (cloudName == null || apiKey == null || apiSecret == null) {
+            throw new IllegalArgumentException("Thieu cau hinh Cloudinary. Can CLOUDINARY_URL hoac CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET.");
+        }
+        return new CloudinaryConfig(cloudName, apiKey, apiSecret);
+    }
+
+    private CloudinaryConfig parseCloudinaryUrl(String value) {
+        try {
+            URI uri = URI.create(value.trim());
+            if (!"cloudinary".equalsIgnoreCase(uri.getScheme()) || isBlank(uri.getHost()) || isBlank(uri.getUserInfo())) {
+                throw new IllegalArgumentException("Invalid CLOUDINARY_URL");
+            }
+            String userInfo = uri.getUserInfo();
+            int separator = userInfo.indexOf(':');
+            if (separator <= 0 || separator == userInfo.length() - 1) {
+                throw new IllegalArgumentException("Invalid CLOUDINARY_URL");
+            }
+            return new CloudinaryConfig(
+                    uri.getHost(),
+                    URLDecoder.decode(userInfo.substring(0, separator), StandardCharsets.UTF_8),
+                    URLDecoder.decode(userInfo.substring(separator + 1), StandardCharsets.UTF_8));
+        } catch (RuntimeException e) {
+            throw new IllegalArgumentException("Invalid CLOUDINARY_URL", e);
+        }
+    }
+
     private String safeExtension(String filename) {
         if (filename == null || !filename.contains(".")) return "";
         String extension = filename.substring(filename.lastIndexOf(".")).toLowerCase(Locale.ROOT);
@@ -174,6 +214,10 @@ public class FileUploadController {
 
     private boolean isBlank(String value) {
         return value == null || value.trim().isEmpty();
+    }
+
+    private String trimToNull(String value) {
+        return isBlank(value) ? null : value.trim();
     }
 
     private String sha1(String value) throws NoSuchAlgorithmException {
@@ -209,5 +253,8 @@ public class FileUploadController {
         static Part file(String name, String filename, String contentType, byte[] fileContent) {
             return new Part(name, null, filename, contentType, fileContent);
         }
+    }
+
+    private record CloudinaryConfig(String cloudName, String apiKey, String apiSecret) {
     }
 }
