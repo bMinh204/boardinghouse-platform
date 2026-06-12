@@ -95,6 +95,18 @@ class RoomLayoutPage {
                 </div>
             </div>`;
 
+        const roomTypeList = document.getElementById("roomTypeList");
+        if (roomTypeList) {
+            roomTypeList.innerHTML = layout.roomTypes?.length
+                ? layout.roomTypes.map(type => `
+                    <span class="tag">
+                        ${escapeHtml(type.name)}
+                        ${type.price ? ` · ${formatMoney(type.price)}` : ""}
+                        ${type.availableRooms !== undefined ? ` · ${type.availableRooms}/${type.totalRooms} trống` : ""}
+                    </span>`).join("")
+                : `<span class="muted-badge">Chưa có loại phòng. Tạo loại phòng trước khi gán cho phòng vật lý.</span>`;
+        }
+
         document.getElementById("sectionList").innerHTML = layout.sections.length
             ? layout.sections.map(section => this.sectionView(section)).join("")
             : `<div class="empty-state">${this.canManage
@@ -131,6 +143,10 @@ class RoomLayoutPage {
                             <span class="field-label">Trạng thái ban đầu</span>
                             <select name="status">${statusOptions("AVAILABLE")}</select>
                         </label>
+                        <label class="field-group">
+                            <span class="field-label">Loại phòng</span>
+                            <select name="roomTypeId">${roomTypeOptions(this.layout.roomTypes)}</select>
+                        </label>
                         <button class="primary-button" type="submit">Thêm phòng</button>
                     </form>
                     <p class="form-hint">Có thể nhập nhiều số phòng, ngăn cách bằng dấu phẩy.</p>` : ""}
@@ -142,6 +158,7 @@ class RoomLayoutPage {
         return `
             <div class="physical-room status-${room.status.toLowerCase()}">
                 <strong>${escapeHtml(room.roomNumber)}</strong>
+                ${room.roomType ? `<small>${escapeHtml(room.roomType.name)}${room.roomType.price ? ` · ${formatMoney(room.roomType.price)}` : ""}</small>` : ""}
                 <span>${statusLabel(room.status)}</span>
                 ${room.status === "HELD" && room.holdExpiresAt
                     ? `<span class="hold-countdown" data-expires-at="${room.holdExpiresAt}">Đang tính thời gian...</span>`
@@ -177,7 +194,8 @@ class RoomLayoutPage {
 
     async onSubmit(event) {
         const form = event.target;
-        if (form.id !== "sectionForm" && form.id !== "holdRoomForm" && !form.matches(".add-rooms-form")) return;
+        if (form.id !== "sectionForm" && form.id !== "roomTypeForm"
+            && form.id !== "holdRoomForm" && !form.matches(".add-rooms-form")) return;
         event.preventDefault();
         try {
             if (form.id === "sectionForm") {
@@ -191,6 +209,21 @@ class RoomLayoutPage {
                 });
                 form.reset();
                 this.showToast("Đã thêm khu/tầng.");
+            } else if (form.id === "roomTypeForm") {
+                const values = Object.fromEntries(new FormData(form).entries());
+                await this.api(`/api/rooms/${this.roomId}/layout/room-types`, {
+                    method: "POST",
+                    body: JSON.stringify({
+                        name: values.name,
+                        price: numberOrNull(values.price),
+                        size: numberOrNull(values.size),
+                        capacity: numberOrNull(values.capacity),
+                        amenities: splitComma(values.amenities),
+                        displayOrder: numberOrNull(values.displayOrder)
+                    })
+                });
+                form.reset();
+                this.showToast("Da them loai phong.");
             } else if (form.matches(".add-rooms-form")) {
                 const values = Object.fromEntries(new FormData(form).entries());
                 const roomNumbers = [...new Set(values.roomNumbers.split(/[,;\n]+/)
@@ -201,6 +234,7 @@ class RoomLayoutPage {
                         method: "POST",
                         body: JSON.stringify({
                             sectionId: Number(form.dataset.sectionId),
+                            roomTypeId: numberOrNull(values.roomTypeId),
                             roomNumber,
                             status: values.status
                         })
@@ -348,6 +382,19 @@ function statusOptions(selected) {
         ${value === "HELD" ? "disabled" : ""}>${label}</option>`).join("");
 }
 
+function roomTypeOptions(roomTypes = []) {
+    const options = [`<option value="">Chưa gán loại phòng</option>`];
+    for (const type of roomTypes || []) {
+        const meta = [
+            type.price ? formatMoney(type.price) : "",
+            type.size ? `${type.size} m²` : "",
+            type.capacity ? `${type.capacity} người` : ""
+        ].filter(Boolean).join(" · ");
+        options.push(`<option value="${type.id}">${escapeHtml(type.name)}${meta ? ` - ${escapeHtml(meta)}` : ""}</option>`);
+    }
+    return options.join("");
+}
+
 function statusLabel(status) {
     return {
         AVAILABLE: "Còn trống",
@@ -360,6 +407,23 @@ function statusLabel(status) {
 
 function numberOrNull(value) {
     return value === "" || value === null || value === undefined ? null : Number(value);
+}
+
+function splitComma(value) {
+    return String(value ?? "")
+        .split(",")
+        .map(item => item.trim())
+        .filter(Boolean);
+}
+
+function formatMoney(value) {
+    const number = Number(value);
+    if (!Number.isFinite(number)) return "";
+    return new Intl.NumberFormat("vi-VN", {
+        style: "currency",
+        currency: "VND",
+        maximumFractionDigits: 0
+    }).format(number);
 }
 
 function escapeHtml(value) {

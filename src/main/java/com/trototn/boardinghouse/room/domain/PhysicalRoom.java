@@ -20,6 +20,10 @@ public class PhysicalRoom {
     @JoinColumn(name = "section_id", nullable = false)
     private RoomSection section;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "room_type_id")
+    private RoomType roomType;
+
     @Column(name = "room_number", nullable = false, length = 50)
     private String roomNumber;
 
@@ -54,6 +58,14 @@ public class PhysicalRoom {
 
     public void setSection(RoomSection section) {
         this.section = section;
+    }
+
+    public RoomType getRoomType() {
+        return roomType;
+    }
+
+    public void setRoomType(RoomType roomType) {
+        this.roomType = roomType;
     }
 
     public String getRoomNumber() {

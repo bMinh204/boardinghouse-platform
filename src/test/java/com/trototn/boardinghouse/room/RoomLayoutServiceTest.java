@@ -7,6 +7,7 @@ import com.trototn.boardinghouse.room.domain.RoomSection;
 import com.trototn.boardinghouse.room.repository.PhysicalRoomRepository;
 import com.trototn.boardinghouse.room.repository.RoomRepository;
 import com.trototn.boardinghouse.room.repository.RoomSectionRepository;
+import com.trototn.boardinghouse.room.repository.RoomTypeRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -29,6 +30,8 @@ class RoomLayoutServiceTest {
     private RoomSectionRepository sectionRepository;
     @Mock
     private PhysicalRoomRepository physicalRoomRepository;
+    @Mock
+    private RoomTypeRepository roomTypeRepository;
 
     @Test
     void onlyOwnerOrAdminCanManageLayout() {
@@ -55,13 +58,13 @@ class RoomLayoutServiceTest {
         RoomLayoutService service = service();
 
         assertThrows(IllegalArgumentException.class,
-                () -> service.addPhysicalRoom(owner, 1L, 5L, "101", null, null));
+                () -> service.addPhysicalRoom(owner, 1L, 5L, null, "101", null, null));
 
         verify(physicalRoomRepository, never()).save(org.mockito.ArgumentMatchers.any());
     }
 
     private RoomLayoutService service() {
-        return new RoomLayoutService(roomRepository, sectionRepository, physicalRoomRepository);
+        return new RoomLayoutService(roomRepository, sectionRepository, physicalRoomRepository, roomTypeRepository);
     }
 
     private User user(Long id, Role role) {

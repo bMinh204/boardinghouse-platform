@@ -55,14 +55,19 @@ public class Responses {
 
     public record MiniUser(Long id, String fullName, String email) {}
 
+    public record RoomTypeView(Long id, String name, Long price, Double size, Integer capacity,
+                               List<String> amenities, String featuredImage, String description,
+                               Integer displayOrder, int totalRooms, int availableRooms) {}
+
     public record PhysicalRoomView(Long id, String roomNumber, Integer displayOrder,
+                                   RoomTypeView roomType,
                                    PhysicalRoomStatus status, Instant holdExpiresAt,
                                    boolean heldByCurrentUser) {}
 
     public record RoomSectionView(Long id, String name, Integer displayOrder,
                                   List<PhysicalRoomView> rooms) {}
 
-    public record RoomLayoutView(Long roomId, String propertyName, int totalRooms,
+    public record RoomLayoutView(Long roomId, String propertyName, List<RoomTypeView> roomTypes, int totalRooms,
                                  int availableRooms, int heldRooms, int occupiedRooms,
                                  int expiringSoonRooms, int maintenanceRooms,
                                  List<RoomSectionView> sections) {}

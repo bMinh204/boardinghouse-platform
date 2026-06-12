@@ -48,11 +48,35 @@ public class RoomLayoutController {
         return Map.of("layout", layoutService.deleteSection(currentUser(principal), roomId, sectionId));
     }
 
+    @PostMapping("/room-types")
+    public Map<String, Object> addRoomType(Principal principal, @PathVariable Long roomId,
+            @RequestBody RoomTypeRequest request) {
+        return Map.of("layout", layoutService.addRoomType(
+                currentUser(principal), roomId, request.name(), request.price(), request.size(),
+                request.capacity(), request.amenities(), request.featuredImage(), request.description(),
+                request.displayOrder()));
+    }
+
+    @PatchMapping("/room-types/{roomTypeId}")
+    public Map<String, Object> updateRoomType(Principal principal, @PathVariable Long roomId,
+            @PathVariable Long roomTypeId, @RequestBody RoomTypeRequest request) {
+        return Map.of("layout", layoutService.updateRoomType(
+                currentUser(principal), roomId, roomTypeId, request.name(), request.price(), request.size(),
+                request.capacity(), request.amenities(), request.featuredImage(), request.description(),
+                request.displayOrder()));
+    }
+
+    @DeleteMapping("/room-types/{roomTypeId}")
+    public Map<String, Object> deleteRoomType(Principal principal, @PathVariable Long roomId,
+            @PathVariable Long roomTypeId) {
+        return Map.of("layout", layoutService.deleteRoomType(currentUser(principal), roomId, roomTypeId));
+    }
+
     @PostMapping("/physical-rooms")
     public Map<String, Object> addPhysicalRoom(Principal principal, @PathVariable Long roomId,
             @RequestBody PhysicalRoomRequest request) {
         return Map.of("layout", layoutService.addPhysicalRoom(
-                currentUser(principal), roomId, request.sectionId(), request.roomNumber(),
+                currentUser(principal), roomId, request.sectionId(), request.roomTypeId(), request.roomNumber(),
                 request.displayOrder(), request.status()));
     }
 
@@ -61,7 +85,7 @@ public class RoomLayoutController {
             @PathVariable Long physicalRoomId, @RequestBody PhysicalRoomRequest request) {
         return Map.of("layout", layoutService.updatePhysicalRoom(
                 currentUser(principal), roomId, physicalRoomId, request.sectionId(),
-                request.roomNumber(), request.displayOrder(), request.status()));
+                request.roomTypeId(), request.roomNumber(), request.displayOrder(), request.status()));
     }
 
     @DeleteMapping("/physical-rooms/{physicalRoomId}")
@@ -78,7 +102,12 @@ public class RoomLayoutController {
     public record SectionRequest(String name, Integer displayOrder) {
     }
 
+    public record RoomTypeRequest(String name, Long price, Double size, Integer capacity,
+                                  java.util.List<String> amenities, String featuredImage,
+                                  String description, Integer displayOrder) {
+    }
+
     public record PhysicalRoomRequest(Long sectionId, String roomNumber,
-                                      Integer displayOrder, PhysicalRoomStatus status) {
+                                      Long roomTypeId, Integer displayOrder, PhysicalRoomStatus status) {
     }
 }

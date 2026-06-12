@@ -8,9 +8,11 @@ import com.trototn.boardinghouse.room.domain.PhysicalRoomStatus;
 import com.trototn.boardinghouse.room.domain.Room;
 import com.trototn.boardinghouse.room.domain.RoomSection;
 import com.trototn.boardinghouse.room.domain.RoomStatus;
+import com.trototn.boardinghouse.room.domain.RoomType;
 import com.trototn.boardinghouse.room.repository.PhysicalRoomRepository;
 import com.trototn.boardinghouse.room.repository.RoomRepository;
 import com.trototn.boardinghouse.room.repository.RoomSectionRepository;
+import com.trototn.boardinghouse.room.repository.RoomTypeRepository;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,12 +24,14 @@ public class RoomLayoutService {
     private final RoomRepository roomRepository;
     private final RoomSectionRepository sectionRepository;
     private final PhysicalRoomRepository physicalRoomRepository;
+    private final RoomTypeRepository roomTypeRepository;
 
     public RoomLayoutService(RoomRepository roomRepository, RoomSectionRepository sectionRepository,
-            PhysicalRoomRepository physicalRoomRepository) {
+            PhysicalRoomRepository physicalRoomRepository, RoomTypeRepository roomTypeRepository) {
         this.roomRepository = roomRepository;
         this.sectionRepository = sectionRepository;
         this.physicalRoomRepository = physicalRoomRepository;
+        this.roomTypeRepository = roomTypeRepository;
     }
 
     @Transactional(readOnly = true)
@@ -56,8 +60,12 @@ public class RoomLayoutService {
         int occupied = countByStatus(roomId, PhysicalRoomStatus.OCCUPIED);
         int expiringSoon = countByStatus(roomId, PhysicalRoomStatus.EXPIRING_SOON);
         int maintenance = countByStatus(roomId, PhysicalRoomStatus.MAINTENANCE);
+        List<Responses.RoomTypeView> roomTypes = roomTypeRepository
+                .findByRoomIdOrderByDisplayOrderAscIdAsc(roomId).stream()
+                .map(this::toRoomTypeView)
+                .toList();
         return new Responses.RoomLayoutView(
-                roomId, room.getPropertyName(), total, available, held, occupied,
+                roomId, room.getPropertyName(), roomTypes, total, available, held, occupied,
                 expiringSoon, maintenance, sections);
     }
 
@@ -108,8 +116,51 @@ public class RoomLayoutService {
     }
 
     @Transactional
+    public Responses.RoomLayoutView addRoomType(User actor, Long roomId, String name, Long price,
+            Double size, Integer capacity, List<String> amenities, String featuredImage,
+            String description, Integer displayOrder) {
+        Room room = managedRoom(actor, roomId);
+        String normalizedName = required(name, "Vui lÃ²ng nháº­p tÃªn loáº¡i phÃ²ng");
+        if (roomTypeRepository.existsByRoomIdAndNameIgnoreCase(roomId, normalizedName)) {
+            throw new IllegalArgumentException("Loáº¡i phÃ²ng Ä‘Ã£ tá»“n táº¡i trong nhÃ  trá»");
+        }
+        RoomType roomType = new RoomType();
+        roomType.setRoom(room);
+        applyRoomType(roomType, normalizedName, price, size, capacity, amenities, featuredImage, description,
+                displayOrder != null ? displayOrder : Math.toIntExact(roomTypeRepository.countByRoomId(roomId)));
+        roomTypeRepository.save(roomType);
+        return getLayout(roomId);
+    }
+
+    @Transactional
+    public Responses.RoomLayoutView updateRoomType(User actor, Long roomId, Long roomTypeId, String name, Long price,
+            Double size, Integer capacity, List<String> amenities, String featuredImage,
+            String description, Integer displayOrder) {
+        managedRoom(actor, roomId);
+        RoomType roomType = roomTypeForRoom(roomTypeId, roomId);
+        String normalizedName = name != null ? required(name, "Vui lÃ²ng nháº­p tÃªn loáº¡i phÃ²ng") : roomType.getName();
+        if (!roomType.getName().equalsIgnoreCase(normalizedName)
+                && roomTypeRepository.existsByRoomIdAndNameIgnoreCase(roomId, normalizedName)) {
+            throw new IllegalArgumentException("Loáº¡i phÃ²ng Ä‘Ã£ tá»“n táº¡i trong nhÃ  trá»");
+        }
+        applyRoomType(roomType, normalizedName, price, size, capacity, amenities, featuredImage, description,
+                displayOrder != null ? displayOrder : roomType.getDisplayOrder());
+        return getLayout(roomId);
+    }
+
+    @Transactional
+    public Responses.RoomLayoutView deleteRoomType(User actor, Long roomId, Long roomTypeId) {
+        managedRoom(actor, roomId);
+        RoomType roomType = roomTypeForRoom(roomTypeId, roomId);
+        physicalRoomRepository.findByRoomTypeId(roomTypeId)
+                .forEach(physicalRoom -> physicalRoom.setRoomType(null));
+        roomTypeRepository.delete(roomType);
+        return getLayout(roomId);
+    }
+
+    @Transactional
     public Responses.RoomLayoutView addPhysicalRoom(User actor, Long roomId, Long sectionId,
-            String roomNumber, Integer displayOrder, PhysicalRoomStatus status) {
+            Long roomTypeId, String roomNumber, Integer displayOrder, PhysicalRoomStatus status) {
         Room room = managedRoom(actor, roomId);
         RoomSection section = sectionForRoom(sectionId, roomId);
         String normalizedNumber = required(roomNumber, "Vui lòng nhập số phòng");
@@ -119,6 +170,9 @@ public class RoomLayoutService {
         PhysicalRoom physicalRoom = new PhysicalRoom();
         physicalRoom.setRoom(room);
         physicalRoom.setSection(section);
+        if (roomTypeId != null) {
+            physicalRoom.setRoomType(roomTypeForRoom(roomTypeId, roomId));
+        }
         physicalRoom.setRoomNumber(normalizedNumber);
         physicalRoom.setDisplayOrder(displayOrder != null ? displayOrder
                 : physicalRoomRepository.findBySectionIdOrderByDisplayOrderAscIdAsc(sectionId).size());
@@ -133,11 +187,14 @@ public class RoomLayoutService {
 
     @Transactional
     public Responses.RoomLayoutView updatePhysicalRoom(User actor, Long roomId, Long physicalRoomId,
-            Long sectionId, String roomNumber, Integer displayOrder, PhysicalRoomStatus status) {
+            Long sectionId, Long roomTypeId, String roomNumber, Integer displayOrder, PhysicalRoomStatus status) {
         managedRoom(actor, roomId);
         PhysicalRoom physicalRoom = physicalRoomForRoom(physicalRoomId, roomId);
         if (sectionId != null) {
             physicalRoom.setSection(sectionForRoom(sectionId, roomId));
+        }
+        if (roomTypeId != null) {
+            physicalRoom.setRoomType(roomTypeForRoom(roomTypeId, roomId));
         }
         if (roomNumber != null) {
             String normalizedNumber = required(roomNumber, "Vui lòng nhập số phòng");
@@ -173,10 +230,42 @@ public class RoomLayoutService {
 
     private Responses.PhysicalRoomView toView(PhysicalRoom room, User actor) {
         return new Responses.PhysicalRoomView(
-                room.getId(), room.getRoomNumber(), room.getDisplayOrder(), room.getStatus(),
-                room.getHoldExpiresAt(),
+                room.getId(), room.getRoomNumber(), room.getDisplayOrder(),
+                room.getRoomType() == null ? null : toRoomTypeView(room.getRoomType()),
+                room.getStatus(), room.getHoldExpiresAt(),
                 actor != null && room.getHeldBy() != null
                         && room.getHeldBy().getId().equals(actor.getId()));
+    }
+
+    private Responses.RoomTypeView toRoomTypeView(RoomType roomType) {
+        return new Responses.RoomTypeView(
+                roomType.getId(),
+                roomType.getName(),
+                roomType.getPrice(),
+                roomType.getSize(),
+                roomType.getCapacity(),
+                roomType.getAmenities() == null ? List.of() : roomType.getAmenities(),
+                roomType.getFeaturedImage(),
+                roomType.getDescription(),
+                roomType.getDisplayOrder(),
+                Math.toIntExact(physicalRoomRepository.countByRoomTypeId(roomType.getId())),
+                Math.toIntExact(physicalRoomRepository.countByRoomTypeIdAndStatus(
+                        roomType.getId(), PhysicalRoomStatus.AVAILABLE)));
+    }
+
+    private void applyRoomType(RoomType roomType, String name, Long price, Double size, Integer capacity,
+            List<String> amenities, String featuredImage, String description, Integer displayOrder) {
+        roomType.setName(name);
+        roomType.setPrice(price);
+        roomType.setSize(size);
+        roomType.setCapacity(capacity);
+        roomType.setAmenities(amenities == null ? List.of() : amenities.stream()
+                .filter(value -> value != null && !value.isBlank())
+                .map(String::trim)
+                .toList());
+        roomType.setFeaturedImage(featuredImage == null || featuredImage.isBlank() ? null : featuredImage.trim());
+        roomType.setDescription(description);
+        roomType.setDisplayOrder(displayOrder != null ? displayOrder : 0);
     }
 
     private Room managedRoom(User actor, Long roomId) {
@@ -205,6 +294,15 @@ public class RoomLayoutService {
             throw new IllegalArgumentException("Phòng không thuộc nhà trọ này");
         }
         return physicalRoom;
+    }
+
+    private RoomType roomTypeForRoom(Long roomTypeId, Long roomId) {
+        RoomType roomType = roomTypeRepository.findById(roomTypeId)
+                .orElseThrow(() -> new IllegalArgumentException("KhÃ´ng tÃ¬m tháº¥y loáº¡i phÃ²ng"));
+        if (!roomType.getRoom().getId().equals(roomId)) {
+            throw new IllegalArgumentException("Loáº¡i phÃ²ng khÃ´ng thuá»™c nhÃ  trá» nÃ y");
+        }
+        return roomType;
     }
 
     public void syncRoomCounts(Long roomId) {

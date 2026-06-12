@@ -18,7 +18,7 @@
             }
         }());
     </script>
-    <link rel="stylesheet" href="/styles.css?v=room-layout-1">
+    <link rel="stylesheet" href="/styles.css?v=room-layout-types1">
 </head>
 <body>
 <div class="page-shell room-detail-page">
@@ -57,6 +57,34 @@
                     <h2>Thêm khu hoặc tầng</h2>
                 </div>
             </div>
+            <form id="roomTypeForm" class="layout-section-form">
+                <label class="field-group">
+                    <span class="field-label">Tên loại phòng</span>
+                    <input name="name" placeholder="Ví dụ: Phòng đơn, phòng đôi, phòng có gác" required>
+                </label>
+                <label class="field-group">
+                    <span class="field-label">Giá thuê</span>
+                    <input name="price" type="number" min="0" placeholder="600000">
+                </label>
+                <label class="field-group">
+                    <span class="field-label">Diện tích</span>
+                    <input name="size" type="number" min="0" step="0.1" placeholder="18">
+                </label>
+                <label class="field-group">
+                    <span class="field-label">Sức chứa</span>
+                    <input name="capacity" type="number" min="1" placeholder="2">
+                </label>
+                <label class="field-group">
+                    <span class="field-label">Tiện nghi</span>
+                    <input name="amenities" placeholder="Wifi, gác xép, WC riêng">
+                </label>
+                <label class="field-group">
+                    <span class="field-label">Thứ tự</span>
+                    <input name="displayOrder" type="number" min="0" placeholder="Tự động">
+                </label>
+                <button class="primary-button" type="submit">Thêm loại phòng</button>
+            </form>
+            <div id="roomTypeList" class="tag-row"></div>
             <form id="sectionForm" class="layout-section-form">
                 <label class="field-group">
                     <span class="field-label">Tên khu/tầng</span>
@@ -119,6 +147,6 @@
 
 <div id="toast" class="toast hidden"></div>
 <script src="/theme.js"></script>
-<script src="/room-layout.js?v=3"></script>
+<script src="/room-layout.js?v=types1"></script>
 </body>
 </html>

@@ -12,9 +12,12 @@ import java.util.Optional;
 public interface PhysicalRoomRepository extends JpaRepository<PhysicalRoom, Long> {
     List<PhysicalRoom> findByRoomIdOrderBySectionDisplayOrderAscDisplayOrderAscIdAsc(Long roomId);
     List<PhysicalRoom> findBySectionIdOrderByDisplayOrderAscIdAsc(Long sectionId);
+    List<PhysicalRoom> findByRoomTypeId(Long roomTypeId);
     boolean existsByRoomIdAndRoomNumberIgnoreCase(Long roomId, String roomNumber);
     long countByRoomId(Long roomId);
     long countByRoomIdAndStatus(Long roomId, PhysicalRoomStatus status);
+    long countByRoomTypeId(Long roomTypeId);
+    long countByRoomTypeIdAndStatus(Long roomTypeId, PhysicalRoomStatus status);
     void deleteBySectionId(Long sectionId);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
