@@ -13,6 +13,8 @@ import com.trototn.boardinghouse.room.repository.PhysicalRoomRepository;
 import com.trototn.boardinghouse.room.repository.RoomRepository;
 import com.trototn.boardinghouse.room.repository.RoomSectionRepository;
 import com.trototn.boardinghouse.room.repository.RoomTypeRepository;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,6 +27,9 @@ public class RoomLayoutService {
     private final RoomSectionRepository sectionRepository;
     private final PhysicalRoomRepository physicalRoomRepository;
     private final RoomTypeRepository roomTypeRepository;
+
+    @PersistenceContext
+    private EntityManager entityManager;
 
     public RoomLayoutService(RoomRepository roomRepository, RoomSectionRepository sectionRepository,
             PhysicalRoomRepository physicalRoomRepository, RoomTypeRepository roomTypeRepository) {
@@ -109,6 +114,8 @@ public class RoomLayoutService {
     public Responses.RoomLayoutView deleteSection(User actor, Long roomId, Long sectionId) {
         managedRoom(actor, roomId);
         RoomSection section = sectionForRoom(sectionId, roomId);
+        physicalRoomRepository.findBySectionIdOrderByDisplayOrderAscIdAsc(sectionId)
+                .forEach(physicalRoom -> detachPhysicalRoomReferences(physicalRoom.getId()));
         physicalRoomRepository.deleteBySectionId(sectionId);
         sectionRepository.delete(section);
         syncRoomCounts(roomId);
@@ -223,6 +230,7 @@ public class RoomLayoutService {
     public Responses.RoomLayoutView deletePhysicalRoom(User actor, Long roomId, Long physicalRoomId) {
         managedRoom(actor, roomId);
         PhysicalRoom physicalRoom = physicalRoomForRoom(physicalRoomId, roomId);
+        detachPhysicalRoomReferences(physicalRoomId);
         physicalRoomRepository.delete(physicalRoom);
         syncRoomCounts(roomId);
         return getLayout(roomId);
@@ -319,6 +327,18 @@ public class RoomLayoutService {
 
     private int countByStatus(Long roomId, PhysicalRoomStatus status) {
         return Math.toIntExact(physicalRoomRepository.countByRoomIdAndStatus(roomId, status));
+    }
+
+    private void detachPhysicalRoomReferences(Long physicalRoomId) {
+        executeUpdate("update temporary_residence set physical_room_id = null where physical_room_id = :physicalRoomId", physicalRoomId);
+        executeUpdate("update rental_contracts set physical_room_id = null where physical_room_id = :physicalRoomId", physicalRoomId);
+        executeUpdate("update rental_requests set physical_room_id = null where physical_room_id = :physicalRoomId", physicalRoomId);
+    }
+
+    private void executeUpdate(String sql, Long physicalRoomId) {
+        entityManager.createNativeQuery(sql)
+                .setParameter("physicalRoomId", physicalRoomId)
+                .executeUpdate();
     }
 
     private String required(String value, String message) {

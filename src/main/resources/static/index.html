@@ -203,7 +203,8 @@
                     <input name="title" placeholder="Tiêu đề phòng" required>
                     <input name="address" placeholder="Địa chỉ chi tiết hoặc link Google Maps" required>
                     <input name="areaName" placeholder="Khu vực" required>
-                    <input name="price" type="number" min="0" placeholder="Giá thuê" required>
+                    <input name="minPrice" type="number" min="0" placeholder="Giá từ" required>
+                    <input name="maxPrice" type="number" min="0" placeholder="Giá đến" required>
                     <input name="size" type="text" placeholder="Diện tích (m2)" required>
                     <input name="capacity" type="number" min="1" placeholder="Sức chứa mỗi phòng (người)" required>
                     <input name="totalRooms" type="number" min="1" placeholder="Tổng số phòng của nhà trọ" required>
@@ -345,6 +346,6 @@
 <script src="/theme.js?v=1"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script src="https://unpkg.com/leaflet-geosearch@3.0.0/dist/geosearch.umd.js"></script>
-<script src="/browse.js?v=20"></script>
+<script src="/browse.js?v=21"></script>
 </body>
 </html>

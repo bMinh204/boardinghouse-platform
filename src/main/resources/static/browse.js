@@ -205,7 +205,7 @@ class BrowseView {
                     <span class="hero-room-info">
                         <span class="eyebrow">Phòng đã duyệt</span>
                         <strong>${escapeHtml(room.title)}</strong>
-                        <span class="hero-room-meta">${escapeHtml(room.areaName ?? room.propertyName ?? "Gần ICTU")} · ${formatMoney(room.price)}/tháng</span>
+                        <span class="hero-room-meta">${escapeHtml(room.areaName ?? room.propertyName ?? "Gần ICTU")} · ${formatRoomPrice(room)}/tháng</span>
                         <span class="tag-row">${amenities.length ? amenities.map(a => `<span class="tag">${escapeHtml(a)}</span>`).join("") : `<span class="tag">${room.size ?? "--"} m²</span><span class="tag">${room.capacity ?? "--"} người</span>`}</span>
                     </span>
                 </button>`;
@@ -490,7 +490,7 @@ class BrowseView {
             <div class="detail-block">
                 <div class="price-line">
                     <h3>${escapeHtml(room.title)}</h3>
-                    <span class="price-chip">${formatMoney(room.price)}/tháng</span>
+                    <span class="price-chip">${formatRoomPrice(room)}/tháng</span>
                 </div>
                 <p class="muted-text">${escapeHtml(room.propertyName)} · ${escapeHtml(addressText)}</p>
                 <div class="tag-row">
@@ -556,7 +556,8 @@ class BrowseView {
         form.title.value = room.title ?? "";
         form.address.value = room.address ?? "";
         form.areaName.value = room.areaName ?? "";
-        form.price.value = room.price ?? "";
+        form.minPrice.value = room.minPrice ?? room.price ?? "";
+        form.maxPrice.value = room.maxPrice ?? room.price ?? "";
         form.size.value = room.size ?? "";
         form.capacity.value = room.capacity ?? "";
         form.totalRooms.value = room.totalRooms ?? 1;
@@ -618,7 +619,7 @@ class BrowseView {
                 <div class="room-body">
                     <div class="price-line">
                         <strong>${escapeHtml(room.title)}</strong>
-                        <span class="price-chip">${formatMoney(room.price)}</span>
+                        <span class="price-chip">${formatRoomPrice(room)}</span>
                     </div>
                     <p class="muted-text">${escapeHtml(room.propertyName)} · ${escapeHtml(room.areaName)}</p>
                     <div class="tag-row">
@@ -648,7 +649,7 @@ class BrowseView {
                 <div class="room-body">
                     <div class="price-line">
                         <strong>${escapeHtml(room.title)}</strong>
-                        <span class="price-chip">${formatMoney(room.price)}</span>
+                        <span class="price-chip">${formatRoomPrice(room)}</span>
                     </div>
                     <p class="muted-text">${escapeHtml(displayRoomAddress(room))}</p>
                     <div class="tag-row">
@@ -675,7 +676,7 @@ class BrowseView {
                 <p>${escapeHtml(room.propertyName)} · ${escapeHtml(displayRoomAddress(room))}</p>
                 <div class="stack-meta">
                     <span class="muted-badge">${labelRoomStatus(room.status)}</span>
-                    <span class="muted-badge">${formatMoney(room.price)}</span>
+                    <span class="muted-badge">${formatRoomPrice(room)}</span>
                 </div>
                 <div class="stack-actions">
                     <button class="primary-button" type="button" data-action="view-room" data-id="${room.id}">Xem</button>
@@ -709,7 +710,7 @@ class BrowseView {
                 <strong>${escapeHtml(room.title)}</strong>
                 <p>${escapeHtml(room.propertyName)} · ${escapeHtml(room.areaName)}</p>
                 <div class="stack-meta">
-                    <span class="muted-badge">${formatMoney(room.price)}</span>
+                    <span class="muted-badge">${formatRoomPrice(room)}</span>
                     <span class="muted-badge">${room.size} m²</span>
                     <span class="muted-badge">${room.availableRooms ?? 0}/${room.totalRooms ?? 1} phòng trống</span>
                 </div>
@@ -724,7 +725,7 @@ class BrowseView {
                 <strong>${escapeHtml(room.title)}</strong>
                 <p>${escapeHtml(room.propertyName)} · ${escapeHtml(room.areaName)}</p>
                 <div class="stack-meta">
-                    <span class="muted-badge">${formatMoney(room.price)}</span>
+                    <span class="muted-badge">${formatRoomPrice(room)}</span>
                     <span class="muted-badge">${room.size} m²</span>
                 </div>
                 <div class="stack-actions">
@@ -1079,13 +1080,16 @@ class BrowseController {
             ? uploadedUrls[0]
             : (featuredImageInput && featuredImageInput.trim().length ? featuredImageInput.trim() : "");
         const sizeValue = parseNumber(formData.get("size"));
-        const priceValue = Number(formData.get("price"));
+        const minPriceValue = Number(formData.get("minPrice"));
+        const maxPriceValue = Number(formData.get("maxPrice"));
         const capacityValue = Number(formData.get("capacity"));
         const totalRoomsValue = Number(formData.get("totalRooms"));
         const availableRoomsValue = Number(formData.get("availableRooms"));
 
         if (!featuredImageValue && uploadedUrls.length === 0) return this.view.showToast("Vui lòng nhập URL ảnh đại diện hoặc chọn ảnh từ máy.", true);
-        if (Number.isNaN(priceValue) || priceValue <= 0) return this.view.showToast("Giá thuê phải là số hợp lệ.", true);
+        if (Number.isNaN(minPriceValue) || minPriceValue <= 0) return this.view.showToast("Giá thấp nhất phải là số hợp lệ.", true);
+        if (Number.isNaN(maxPriceValue) || maxPriceValue <= 0) return this.view.showToast("Giá cao nhất phải là số hợp lệ.", true);
+        if (maxPriceValue < minPriceValue) return this.view.showToast("Giá cao nhất không được nhỏ hơn giá thấp nhất.", true);
         if (sizeValue === null || sizeValue <= 0) return this.view.showToast("Diện tích phải là số hợp lệ.", true);
         if (Number.isNaN(capacityValue) || capacityValue <= 0) return this.view.showToast("Sức chứa phải là số hợp lệ.", true);
         if (Number.isNaN(totalRoomsValue) || totalRoomsValue <= 0) return this.view.showToast("Tổng số phòng phải lớn hơn 0.", true);
@@ -1094,7 +1098,7 @@ class BrowseController {
 
         const payload = {
             propertyName: formData.get("propertyName"), title: formData.get("title"), address: formData.get("address"),
-            areaName: formData.get("areaName"), price: priceValue, size: sizeValue, capacity: capacityValue,
+            areaName: formData.get("areaName"), price: minPriceValue, minPrice: minPriceValue, maxPrice: maxPriceValue, size: sizeValue, capacity: capacityValue,
             totalRooms: totalRoomsValue, availableRooms: availableRoomsValue,
             amenities: splitComma(formData.get("amenities")), featuredImage: featuredImageValue,
             imageUrls: [...splitComma(formData.get("imageUrls")), ...uploadedUrls], description: formData.get("description"),
@@ -1408,6 +1412,14 @@ function splitComma(value) {
 
 function formatMoney(value) {
     return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND", maximumFractionDigits: 0 }).format(Number(value ?? 0));
+}
+
+function formatRoomPrice(room) {
+    const min = Number(room?.minPrice ?? room?.price ?? 0);
+    const max = Number(room?.maxPrice ?? room?.price ?? min);
+    if (!Number.isFinite(min) || min <= 0) return formatMoney(room?.price);
+    if (!Number.isFinite(max) || max <= 0 || max === min) return formatMoney(min);
+    return `${formatMoney(min)} - ${formatMoney(max)}`;
 }
 
 function normalizeIndex(index, length) {

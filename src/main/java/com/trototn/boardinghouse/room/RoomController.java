@@ -139,6 +139,8 @@ public class RoomController {
             @NotBlank String address,
             @NotBlank String areaName,
             Long price,
+            Long minPrice,
+            Long maxPrice,
             Double size,
             Integer capacity,
             Integer totalRooms,
@@ -161,6 +163,8 @@ public class RoomController {
             r.setAddress(address);
             r.setAreaName(areaName);
             r.setPrice(price);
+            r.setMinPrice(minPrice);
+            r.setMaxPrice(maxPrice);
             r.setSize(size);
             r.setCapacity(capacity);
             r.setTotalRooms(totalRooms);

@@ -27,6 +27,8 @@ public class Responses {
             String address,
             String areaName,
             Long price,
+            Long minPrice,
+            Long maxPrice,
             Double size,
             Integer capacity,
             Integer totalRooms,

@@ -52,8 +52,8 @@ public class RoomService {
                         (currentUser != null && r.getOwner().getId().equals(currentUser.getId())))
                 .filter(r -> filters.keyword == null || containsIgnoreCase(r.getTitle(), filters.keyword) || containsIgnoreCase(r.getAddress(), filters.keyword))
                 .filter(r -> filters.areaName == null || containsIgnoreCase(r.getAreaName(), filters.areaName))
-                .filter(r -> filters.minPrice == null || (r.getPrice() != null && r.getPrice() >= filters.minPrice))
-                .filter(r -> filters.maxPrice == null || (r.getPrice() != null && r.getPrice() <= filters.maxPrice))
+                .filter(r -> filters.minPrice == null || (effectiveMaxPrice(r) != null && effectiveMaxPrice(r) >= filters.minPrice))
+                .filter(r -> filters.maxPrice == null || (effectiveMinPrice(r) != null && effectiveMinPrice(r) <= filters.maxPrice))
                 .filter(r -> filters.minSize == null || (r.getSize() != null && r.getSize() >= filters.minSize))
                 .filter(r -> filters.maxSize == null || (r.getSize() != null && r.getSize() <= filters.maxSize))
                 .filter(r -> filters.amenity == null || (r.getAmenities() != null && r.getAmenities().stream().anyMatch(a -> containsIgnoreCase(a, filters.amenity))))
@@ -116,6 +116,8 @@ public class RoomService {
         room.setAddress(payload.getAddress());
         room.setAreaName(payload.getAreaName());
         room.setPrice(payload.getPrice());
+        room.setMinPrice(payload.getMinPrice());
+        room.setMaxPrice(payload.getMaxPrice());
         room.setSize(payload.getSize());
         room.setCapacity(payload.getCapacity());
         room.setTotalRooms(payload.getTotalRooms());
@@ -204,8 +206,14 @@ public class RoomService {
     }
 
     private void validateRoom(Room room) {
-        if (room.getPrice() == null || room.getPrice() <= 0) {
+        if (room.getMinPrice() == null || room.getMinPrice() <= 0) {
             throw new IllegalArgumentException("Giá thuê phải lớn hơn 0");
+        }
+        if (room.getMaxPrice() == null || room.getMaxPrice() <= 0) {
+            throw new IllegalArgumentException("Giá thuê phải lớn hơn 0");
+        }
+        if (room.getMaxPrice() < room.getMinPrice()) {
+            throw new IllegalArgumentException("Giá cao nhất không được nhỏ hơn giá thấp nhất");
         }
         if (room.getSize() == null || room.getSize() <= 0) {
             throw new IllegalArgumentException("Diện tích phải lớn hơn 0");
@@ -233,6 +241,13 @@ public class RoomService {
     }
 
     private void sanitizeRoom(Room room) {
+        if (room.getMinPrice() == null) {
+            room.setMinPrice(room.getPrice());
+        }
+        if (room.getMaxPrice() == null) {
+            room.setMaxPrice(room.getPrice() != null ? room.getPrice() : room.getMinPrice());
+        }
+        room.setPrice(room.getMinPrice());
         if (room.getAvailableRooms() != null
                 && (room.getStatus() == RoomStatus.AVAILABLE || room.getStatus() == RoomStatus.OCCUPIED)) {
             room.setStatus(room.getAvailableRooms() > 0 ? RoomStatus.AVAILABLE : RoomStatus.OCCUPIED);
@@ -266,6 +281,15 @@ public class RoomService {
                 || trimmed.startsWith("https://")
                 || trimmed.startsWith("/uploads/")
                 || trimmed.startsWith("data:image/");
+    }
+
+    private Long effectiveMinPrice(Room room) {
+        return room.getMinPrice() != null ? room.getMinPrice() : room.getPrice();
+    }
+
+    private Long effectiveMaxPrice(Room room) {
+        if (room.getMaxPrice() != null) return room.getMaxPrice();
+        return room.getMinPrice() != null ? room.getMinPrice() : room.getPrice();
     }
 
     public record Filters(String keyword, String areaName, Long minPrice, Long maxPrice,

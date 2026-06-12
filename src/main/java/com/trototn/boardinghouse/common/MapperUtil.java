@@ -52,6 +52,8 @@ public class MapperUtil {
                 room.getAddress(),
                 room.getAreaName(),
                 room.getPrice(),
+                room.getMinPrice() != null ? room.getMinPrice() : room.getPrice(),
+                room.getMaxPrice() != null ? room.getMaxPrice() : room.getPrice(),
                 room.getSize(),
                 room.getCapacity(),
                 room.getTotalRooms() != null ? room.getTotalRooms() : 1,

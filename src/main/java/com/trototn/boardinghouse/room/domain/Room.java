@@ -23,6 +23,8 @@ public class Room {
     private String address;
     private String areaName;
     private Long price;
+    private Long minPrice;
+    private Long maxPrice;
     private Double size;
     private Integer capacity;
     private Integer totalRooms;
@@ -147,6 +149,22 @@ public class Room {
 
     public void setPrice(Long price) {
         this.price = price;
+    }
+
+    public Long getMinPrice() {
+        return minPrice;
+    }
+
+    public void setMinPrice(Long minPrice) {
+        this.minPrice = minPrice;
+    }
+
+    public Long getMaxPrice() {
+        return maxPrice;
+    }
+
+    public void setMaxPrice(Long maxPrice) {
+        this.maxPrice = maxPrice;
     }
 
     public Double getSize() {

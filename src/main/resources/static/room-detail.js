@@ -112,7 +112,7 @@ class RoomDetailPage {
                                 <p class="eyebrow">${escapeHtml(room.propertyName || "Nhà trọ")}</p>
                                 <h1>${escapeHtml(room.title)}</h1>
                             </div>
-                            <span class="price-chip room-detail-price">${formatMoney(room.price)}/tháng</span>
+                            <span class="price-chip room-detail-price">${formatRoomPrice(room)}/tháng</span>
                         </div>
                         <p class="room-detail-address">${escapeHtml(address)}</p>
                         <div class="tag-row">
@@ -441,6 +441,14 @@ function extractMapCoordinates(value) {
 
 function formatMoney(value) {
     return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND", maximumFractionDigits: 0 }).format(Number(value || 0));
+}
+
+function formatRoomPrice(room) {
+    const min = Number(room?.minPrice ?? room?.price ?? 0);
+    const max = Number(room?.maxPrice ?? room?.price ?? min);
+    if (!Number.isFinite(min) || min <= 0) return formatMoney(room?.price);
+    if (!Number.isFinite(max) || max <= 0 || max === min) return formatMoney(min);
+    return `${formatMoney(min)} - ${formatMoney(max)}`;
 }
 
 function formatDate(value) {
