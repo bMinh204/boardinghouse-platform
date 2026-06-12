@@ -186,7 +186,7 @@ public class Room {
     }
 
     public void setAmenities(List<String> amenities) {
-        this.amenities = amenities;
+        this.amenities = amenities == null ? new ArrayList<>() : new ArrayList<>(amenities);
     }
 
     public String getFeaturedImage() {
@@ -202,7 +202,7 @@ public class Room {
     }
 
     public void setImageUrls(List<String> imageUrls) {
-        this.imageUrls = imageUrls;
+        this.imageUrls = imageUrls == null ? new ArrayList<>() : new ArrayList<>(imageUrls);
     }
 
     public String getDescription() {

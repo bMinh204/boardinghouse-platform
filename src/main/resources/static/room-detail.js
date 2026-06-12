@@ -23,6 +23,9 @@ class RoomDetailPage {
     bindEvents() {
         document.addEventListener("click", event => this.onClick(event));
         document.addEventListener("submit", event => this.onSubmit(event));
+        document.addEventListener("keydown", event => {
+            if (event.key === "Escape") closeImageLightbox();
+        });
         document.getElementById("logoutBtn").addEventListener("click", () => this.logout());
     }
 
@@ -74,7 +77,7 @@ class RoomDetailPage {
         const room = this.room;
         const address = displayAddress(room);
         const images = uniqueImages([room.featuredImage, ...(room.imageUrls || [])]);
-        const mapQuery = room.mapQuery || address || room.areaName;
+        const mapQuery = buildMapSearchQuery(room);
         const canRequest = ["AVAILABLE", "EXPIRING_SOON"].includes(room.status);
         const isTenant = this.user?.role === "TENANT";
 
@@ -84,7 +87,9 @@ class RoomDetailPage {
         this.detail.innerHTML = `
             <section class="room-detail-gallery panel">
                 <div class="room-detail-main-image">
-                    <img src="${escapeHtml(imageSrc(images[0]))}" alt="${escapeHtml(room.title)}" onerror="${imageFallback()}">
+                    <button type="button" class="image-view-button" data-action="open-image" data-url="${escapeHtml(imageSrc(images[0]))}" aria-label="Xem ảnh lớn">
+                        <img src="${escapeHtml(imageSrc(images[0]))}" alt="${escapeHtml(room.title)}" onerror="${imageFallback()}">
+                    </button>
                 </div>
                 <div class="room-detail-thumbnails">
                     ${images.slice(1, 5).map(url => `
@@ -234,9 +239,20 @@ class RoomDetailPage {
         if (!button) return;
         const action = button.dataset.action;
         try {
+            if (action === "open-image") {
+                openImageLightbox(button.dataset.url, this.room?.title || "Ảnh phòng trọ");
+                return;
+            }
+            if (action === "close-image") {
+                closeImageLightbox();
+                return;
+            }
             if (action === "select-image") {
                 const image = document.querySelector(".room-detail-main-image img");
-                if (image) image.src = button.dataset.url;
+                const mainButton = document.querySelector(".room-detail-main-image [data-action='open-image']");
+                const nextUrl = imageSrc(button.dataset.url);
+                if (image) image.src = nextUrl;
+                if (mainButton) mainButton.dataset.url = nextUrl;
             }
             if (action === "toggle-contact") {
                 document.getElementById("contactForm")?.classList.toggle("hidden");
@@ -321,11 +337,9 @@ function displayValue(value, fallback = "Đang cập nhật") {
 }
 
 function displayAddress(room) {
-    const address = String(room.address || "").trim();
-    if (/^https?:\/\/(www\.)?(google\.[^/]+\/maps|maps\.app\.goo\.gl)/i.test(address)) {
-        return room.mapQuery || room.areaName || "Xem vị trí trên Google Maps";
-    }
-    return address || room.mapQuery || room.areaName || "Chưa cập nhật";
+    const address = normalizeMapValue(room?.address);
+    if (!isMapsUrl(address)) return address || room?.areaName || "Chưa cập nhật";
+    return normalizeMapValue(room?.areaName) || "Xem vị trí trên Google Maps";
 }
 
 function googleMapsLink(query) {
@@ -334,7 +348,56 @@ function googleMapsLink(query) {
 }
 
 function googleMapsEmbed(query) {
-    return `https://www.google.com/maps?q=${encodeURIComponent(query)}&output=embed`;
+    const coordinates = extractMapCoordinates(query);
+    const value = coordinates ? `${coordinates.lat},${coordinates.lng}` : query;
+    return `https://www.google.com/maps?q=${encodeURIComponent(value)}&output=embed`;
+}
+
+function buildMapSearchQuery(room) {
+    const address = normalizeMapValue(room?.address);
+    const mapQuery = normalizeMapValue(room?.mapQuery);
+    const areaName = normalizeMapValue(room?.areaName);
+
+    if (address) return address;
+    if (mapQuery) return mapQuery;
+    if (areaName) return areaName.includes("Thái Nguyên") ? areaName : `${areaName}, Thái Nguyên`;
+    return "";
+}
+
+function normalizeMapValue(value) {
+    return String(value ?? "").trim();
+}
+
+function isMapsUrl(value) {
+    const text = normalizeMapValue(value);
+    return /^https?:\/\/(www\.)?(google\.[^/]+\/maps|maps\.app\.goo\.gl|goo\.gl\/maps|maps\.google\.[^/]+)/i.test(text);
+}
+
+function extractMapCoordinates(value) {
+    const text = normalizeMapValue(value);
+    if (!text) return null;
+    const decoded = (() => {
+        try {
+            return decodeURIComponent(text);
+        } catch {
+            return text;
+        }
+    })();
+    const patterns = [
+        /@(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/,
+        /[?&](?:q|query|ll)=(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/,
+        /!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/,
+    ];
+    for (const pattern of patterns) {
+        const match = decoded.match(pattern);
+        if (!match) continue;
+        const lat = Number(match[1]);
+        const lng = Number(match[2]);
+        if (Number.isFinite(lat) && Number.isFinite(lng) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180) {
+            return { lat, lng };
+        }
+    }
+    return null;
 }
 
 function formatMoney(value) {
@@ -365,6 +428,38 @@ function imageSrc(value) {
 
 function imageFallback() {
     return "this.onerror=null;this.src='/room-placeholder.svg';";
+}
+
+function openImageLightbox(url, title = "Ảnh phòng trọ") {
+    const src = imageSrc(url);
+    let lightbox = document.getElementById("imageLightbox");
+    if (!lightbox) {
+        lightbox = document.createElement("div");
+        lightbox.id = "imageLightbox";
+        lightbox.className = "image-lightbox hidden";
+        lightbox.innerHTML = `
+            <button class="image-lightbox-backdrop" type="button" data-action="close-image" aria-label="Đóng ảnh"></button>
+            <div class="image-lightbox-content" role="dialog" aria-modal="true" aria-label="Xem ảnh lớn">
+                <button class="image-lightbox-close" type="button" data-action="close-image" aria-label="Đóng ảnh">×</button>
+                <img alt="">
+                <p></p>
+            </div>`;
+        document.body.appendChild(lightbox);
+    }
+    const image = lightbox.querySelector("img");
+    const caption = lightbox.querySelector("p");
+    image.src = src;
+    image.alt = title;
+    caption.textContent = "Bấm ESC hoặc vùng tối để đóng";
+    lightbox.classList.remove("hidden");
+    document.body.classList.add("image-lightbox-open");
+}
+
+function closeImageLightbox() {
+    const lightbox = document.getElementById("imageLightbox");
+    if (!lightbox) return;
+    lightbox.classList.add("hidden");
+    document.body.classList.remove("image-lightbox-open");
 }
 
 function escapeHtml(value) {

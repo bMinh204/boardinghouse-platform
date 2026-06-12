@@ -108,6 +108,9 @@ class BrowseView {
         document.getElementById("backupBtn").addEventListener("click", e => controller.onBackup(e));
         document.addEventListener("click", e => controller.onDocumentClick(e));
         document.addEventListener("submit", e => controller.onDynamicSubmit(e));
+        document.addEventListener("keydown", event => {
+            if (event.key === "Escape") closeImageLightbox();
+        });
         [this.refs.authLink].forEach(button => {
             if (button) {
                 const navigate = event => {
@@ -483,7 +486,7 @@ class BrowseView {
         const addressText = displayRoomAddress(room);
 
         this.refs.detailContent.innerHTML = `
-            <div class="detail-hero"><img src="${escapeHtml(imageSrc(room.featuredImage))}" alt="${escapeHtml(room.title)}" onerror="${imageErrorFallback()}"></div>
+            <div class="detail-hero"><img src="${escapeHtml(imageSrc(room.featuredImage))}" alt="${escapeHtml(room.title)}" data-action="open-image" data-url="${escapeHtml(imageSrc(room.featuredImage))}" onerror="${imageErrorFallback()}"></div>
             <div class="detail-block">
                 <div class="price-line">
                     <h3>${escapeHtml(room.title)}</h3>
@@ -501,7 +504,7 @@ class BrowseView {
                 <p>${escapeHtml(room.description)}</p>
                 <div class="tag-row">${(room.amenities ?? []).map(amenity => `<span class="tag">${escapeHtml(amenity)}</span>`).join("")}</div>
             </div>
-            <div class="gallery">${(room.imageUrls ?? []).map(url => `<img src="${escapeHtml(imageSrc(url))}" alt="Ảnh phòng" onerror="${imageErrorFallback()}">`).join("")}</div>
+            <div class="gallery">${(room.imageUrls ?? []).map(url => `<img src="${escapeHtml(imageSrc(url))}" alt="Ảnh phòng" data-action="open-image" data-url="${escapeHtml(imageSrc(url))}" onerror="${imageErrorFallback()}">`).join("")}</div>
             <div class="detail-block">
                 <div class="stack-item">
                     <p><strong>Chủ trọ:</strong> ${escapeHtml(room.ownerName)}</p>
@@ -611,7 +614,7 @@ class BrowseView {
     roomCard(room, state) {
         return `
             <article class="room-card">
-                <img src="${escapeHtml(imageSrc(room.featuredImage))}" alt="${escapeHtml(room.title)}" onerror="${imageErrorFallback()}">
+                <img src="${escapeHtml(imageSrc(room.featuredImage))}" alt="${escapeHtml(room.title)}" data-action="open-image" data-url="${escapeHtml(imageSrc(room.featuredImage))}" onerror="${imageErrorFallback()}">
                 <div class="room-body">
                     <div class="price-line">
                         <strong>${escapeHtml(room.title)}</strong>
@@ -641,7 +644,7 @@ class BrowseView {
     landlordRoomCard(room) {
         return `
             <article class="room-card">
-                <img src="${escapeHtml(imageSrc(room.featuredImage))}" alt="${escapeHtml(room.title)}" onerror="${imageErrorFallback()}">
+                <img src="${escapeHtml(imageSrc(room.featuredImage))}" alt="${escapeHtml(room.title)}" data-action="open-image" data-url="${escapeHtml(imageSrc(room.featuredImage))}" onerror="${imageErrorFallback()}">
                 <div class="room-body">
                     <div class="price-line">
                         <strong>${escapeHtml(room.title)}</strong>
@@ -1169,6 +1172,14 @@ class BrowseController {
         if (!button) return;
         const { action, id, status } = button.dataset;
         try {
+            if (action === "open-image") {
+                openImageLightbox(button.dataset.url, button.getAttribute("alt") || "Ảnh phòng trọ");
+                return;
+            }
+            if (action === "close-image") {
+                closeImageLightbox();
+                return;
+            }
             if (action === "hero-carousel-prev" || action === "hero-carousel-next") {
                 const roomCount = this.model.state.rooms
                     .filter(room => !room.moderationStatus || room.moderationStatus === "APPROVED")
@@ -1554,4 +1565,36 @@ function displayRoomAddress(room) {
     const address = normalizeMapValue(room?.address);
     if (!isMapsUrl(address)) return address;
     return normalizeMapValue(room?.areaName) || "Link Google Maps";
+}
+
+function openImageLightbox(url, title = "Ảnh phòng trọ") {
+    const src = imageSrc(url);
+    let lightbox = document.getElementById("imageLightbox");
+    if (!lightbox) {
+        lightbox = document.createElement("div");
+        lightbox.id = "imageLightbox";
+        lightbox.className = "image-lightbox hidden";
+        lightbox.innerHTML = `
+            <button class="image-lightbox-backdrop" type="button" data-action="close-image" aria-label="Đóng ảnh"></button>
+            <div class="image-lightbox-content" role="dialog" aria-modal="true" aria-label="Xem ảnh lớn">
+                <button class="image-lightbox-close" type="button" data-action="close-image" aria-label="Đóng ảnh">×</button>
+                <img alt="">
+                <p></p>
+            </div>`;
+        document.body.appendChild(lightbox);
+    }
+    const image = lightbox.querySelector("img");
+    const caption = lightbox.querySelector("p");
+    image.src = src;
+    image.alt = title;
+    caption.textContent = "Bấm ESC hoặc vùng tối để đóng";
+    lightbox.classList.remove("hidden");
+    document.body.classList.add("image-lightbox-open");
+}
+
+function closeImageLightbox() {
+    const lightbox = document.getElementById("imageLightbox");
+    if (!lightbox) return;
+    lightbox.classList.add("hidden");
+    document.body.classList.remove("image-lightbox-open");
 }

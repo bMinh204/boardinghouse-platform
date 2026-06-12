@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -244,13 +245,13 @@ public class RoomService {
             room.setAmenities(room.getAmenities().stream()
                     .filter(s -> s != null && !s.isBlank())
                     .map(String::trim)
-                    .toList());
+                    .collect(Collectors.toCollection(ArrayList::new)));
         }
         if (room.getImageUrls() != null) {
             room.setImageUrls(room.getImageUrls().stream()
                     .filter(this::isValidImageUrl)
                     .map(String::trim)
-                    .toList());
+                    .collect(Collectors.toCollection(ArrayList::new)));
         }
         if ((room.getFeaturedImage() == null || room.getFeaturedImage().isBlank())
                 && room.getImageUrls() != null && !room.getImageUrls().isEmpty()) {
