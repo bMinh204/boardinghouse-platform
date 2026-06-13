@@ -118,5 +118,6 @@ public class Responses {
                                  List<ReportItem> monthlyReport, List<ReportItem> quarterlyReport,
                                  List<ReportItem> yearlyReport) {}
 
-    public record ChatbotReply(String reply, Long budget, String area, String amenity, List<RoomView> suggestions) {}
+    public record ChatbotReply(String reply, Long budget, Long minBudget, Long maxBudget,
+                                String area, String amenity, List<RoomView> suggestions) {}
 }

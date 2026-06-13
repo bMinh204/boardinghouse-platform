@@ -9,6 +9,7 @@ import com.trototn.boardinghouse.room.repository.RoomRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.text.NumberFormat;
 import java.text.Normalizer;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -55,9 +56,9 @@ public class ChatbotService {
                 .collect(Collectors.toList());
 
         List<Room> filtered = approvedRooms.stream()
-                .filter(r -> minBudgetFinal == null || (r.getPrice() != null && r.getPrice() >= minBudgetFinal))
-                .filter(r -> maxBudgetFinal == null || (r.getPrice() != null && r.getPrice() <= maxBudgetFinal))
-                .filter(r -> budgetUpperFinal == null || (r.getPrice() != null && r.getPrice() <= budgetUpperFinal))
+                .filter(r -> minBudgetFinal == null || (effectiveMaxPrice(r) != null && effectiveMaxPrice(r) >= minBudgetFinal))
+                .filter(r -> maxBudgetFinal == null || (effectiveMinPrice(r) != null && effectiveMinPrice(r) <= maxBudgetFinal))
+                .filter(r -> budgetUpperFinal == null || (effectiveMinPrice(r) != null && effectiveMinPrice(r) <= budgetUpperFinal))
                 .filter(r -> area == null || (r.getAreaName() != null && normalize(r.getAreaName()).contains(area)))
                 .filter(r -> capacity == null || (r.getCapacity() != null && r.getCapacity() >= capacity))
                 .filter(r -> amenity == null || hasAmenity(r, amenity))
@@ -75,7 +76,7 @@ public class ChatbotService {
         boolean approximateFallback = ranked.isEmpty() && hasConstraints;
         if (fallback) {
             ranked = approvedRooms.stream()
-                    .sorted(Comparator.comparing(Room::getPrice, Comparator.nullsLast(Long::compareTo)))
+                    .sorted(Comparator.comparing(this::effectiveMinPrice, Comparator.nullsLast(Long::compareTo)))
                     .limit(3)
                     .toList();
         } else if (approximateFallback) {
@@ -88,20 +89,20 @@ public class ChatbotService {
 
         StringBuilder replyText = new StringBuilder("Mình đã lọc phòng theo yêu cầu");
         if (minBudget != null && maxBudget != null) {
-            replyText.append(", giá ").append(minBudget).append("-").append(maxBudget);
+            replyText.append(", giá từ ").append(formatBudget(minBudget)).append(" đến ").append(formatBudget(maxBudget));
         } else if (minBudget != null) {
-            replyText.append(", giá từ ").append(minBudget);
+            replyText.append(", giá từ ").append(formatBudget(minBudget));
         } else if (maxBudget != null) {
-            replyText.append(", giá đến ").append(maxBudget);
+            replyText.append(", giá đến ").append(formatBudget(maxBudget));
         } else if (budget != null) {
-            replyText.append(", ngân sách mục tiêu ").append(budget);
+            replyText.append(", ngân sách mục tiêu ").append(formatBudget(budget));
         }
         if (area != null) replyText.append(", khu vực ").append(area);
         if (amenity != null) replyText.append(", tiện nghi chứa '").append(amenity).append("'");
         if (!keywords.isEmpty()) replyText.append(", từ khóa ").append(String.join(", ", keywords));
         replyText.append(". Có ").append(ranked.size()).append(" gợi ý phù hợp");
         if (budget != null && minBudget == null && maxBudget == null && !ranked.isEmpty()) {
-            long over = ranked.stream().filter(r -> r.getPrice() != null && r.getPrice() > budget).count();
+            long over = ranked.stream().filter(r -> effectiveMinPrice(r) != null && effectiveMinPrice(r) > budget).count();
             if (over > 0) replyText.append(", một số phòng cao hơn ≤20% ngân sách.");
             else replyText.append(".");
         } else {
@@ -122,7 +123,7 @@ public class ChatbotService {
         String finalReply = chatbotAiClient
                 .generateReply(prompt, replyText.toString(), suggestions)
                 .orElse(replyText.toString());
-        return new Responses.ChatbotReply(finalReply, budget, area, amenity, suggestions);
+        return new Responses.ChatbotReply(finalReply, budget, minBudget, maxBudget, area, amenity, suggestions);
     }
 
     private BudgetRange extractBudgetRange(String prompt) {
@@ -149,19 +150,20 @@ public class ChatbotService {
 
     private BudgetRange extractExplicitRange(String prompt) {
         String normalized = normalize(prompt);
-        Matcher m = Pattern.compile("(?:tu\\s+)?(\\d+(?:[.,]\\d+)?)\\s*(tr|trieu)?\\s+(?:den|toi|-)\\s+(\\d+(?:[.,]\\d+)?)\\s*(tr|trieu)")
+        String money = "(\\d[\\d.,]*)(?:\\s*(tr|trieu|nghin|ngan|k))?";
+        Matcher m = Pattern.compile("(?:gia\\s+|ngan\\s+sach\\s+)?(?:tu\\s+)?" + money + "\\s*(?:den|toi|-)\\s*" + money)
                 .matcher(normalized);
         if (m.find()) {
-            Long min = parseMillion(m.group(1));
-            Long max = parseMillion(m.group(3));
-            return new BudgetRange(min, max, (min + max) / 2);
-        }
-        Matcher m2 = Pattern.compile("(\\d+(?:[.,]\\d+)?)\\s*(tr|trieu)\\s*[-–]\\s*(\\d+(?:[.,]\\d+)?)\\s*(tr|trieu)")
-                .matcher(normalized);
-        if (m2.find()) {
-            Long min = parseMillion(m2.group(1));
-            Long max = parseMillion(m2.group(3));
-            return new BudgetRange(min, max, (min + max) / 2);
+            Long min = parseBudgetToken(m.group(1), m.group(2));
+            Long max = parseBudgetToken(m.group(3), m.group(4));
+            if (min != null && max != null) {
+                if (min > max) {
+                    long tmp = min;
+                    min = max;
+                    max = tmp;
+                }
+                return new BudgetRange(min, max, (min + max) / 2);
+            }
         }
         return null;
     }
@@ -195,9 +197,9 @@ public class ChatbotService {
             } catch (NumberFormatException ignored) { }
         }
         // số + tr / triệu
-        Matcher m2 = Pattern.compile("(\\d+(?:[.,]\\d+)?)\\s*(tr|trieu|triệu)").matcher(prompt);
+        Matcher m2 = Pattern.compile("(\\d+(?:[.,]\\d+)?)\\s*(tr|trieu|triệu|nghin|ngan|k)").matcher(prompt);
         if (m2.find()) {
-            return parseMillion(m2.group(1));
+            return parseBudgetToken(m2.group(1), m2.group(2));
         }
         return null;
     }
@@ -206,19 +208,19 @@ public class ChatbotService {
         if (number == null) return null;
         try {
             if (unit != null) {
-                return parseMillion(number);
+                String normalizedUnit = normalize(unit);
+                double value = Double.parseDouble(number.replace(",", "."));
+                if (normalizedUnit.equals("k") || normalizedUnit.equals("nghin") || normalizedUnit.equals("ngan")) {
+                    return (long)(value * 1_000);
+                }
+                return (long)(value * 1_000_000);
             }
             String normalized = number.replace(".", "").replace(",", "");
-            if (normalized.length() >= 6) {
+            if (normalized.length() >= 5) {
                 return Long.parseLong(normalized);
             }
         } catch (NumberFormatException ignored) { }
         return null;
-    }
-
-    private Long parseMillion(String raw) {
-        double million = Double.parseDouble(raw.replace(",", "."));
-        return (long)(million * 1_000_000);
     }
 
     private String extractArea(String prompt) {
@@ -283,33 +285,36 @@ public class ChatbotService {
 
     private double scoreRoom(Room room, Long budget, Long minBudget, Long maxBudget, Double budgetUpper, String area, String amenity, List<String> keywords) {
         double score = 0;
-        if (room.getPrice() != null) {
-            long price = room.getPrice();
+        Long roomMinPrice = effectiveMinPrice(room);
+        Long roomMaxPrice = effectiveMaxPrice(room);
+        if (roomMinPrice != null) {
+            long minPrice = roomMinPrice;
+            long maxPrice = roomMaxPrice != null ? roomMaxPrice : minPrice;
             if (minBudget != null && maxBudget == null) {
-                if (price >= minBudget) {
+                if (maxPrice >= minBudget) {
                     score += 1.0;
-                    score += Math.max(0, 0.8 - Math.abs(price - minBudget) / Math.max(minBudget, 1.0));
+                    score += Math.max(0, 0.8 - distanceToRange(minBudget, minPrice, maxPrice) / Math.max(minBudget, 1.0));
                 }
             } else if (maxBudget != null && minBudget == null) {
-                if (price <= maxBudget) {
+                if (minPrice <= maxBudget) {
                     score += 1.0;
-                    score += Math.max(0, 0.8 - Math.abs(price - maxBudget) / Math.max(maxBudget, 1.0));
+                    score += Math.max(0, 0.8 - distanceToRange(maxBudget, minPrice, maxPrice) / Math.max(maxBudget, 1.0));
                 }
             } else if (minBudget != null && maxBudget != null) {
-                if (price >= minBudget && price <= maxBudget) {
+                if (maxPrice >= minBudget && minPrice <= maxBudget) {
                     score += 1.2;
                 }
                 long mid = (minBudget + maxBudget) / 2;
-                score += Math.max(0, 0.6 - Math.abs(price - mid) / Math.max(mid, 1.0));
+                score += Math.max(0, 0.6 - distanceToRange(mid, minPrice, maxPrice) / Math.max(mid, 1.0));
             } else if (budget != null) {
-                if (price <= budget) {
+                if (minPrice <= budget) {
                     score += 1.0;
-                } else if (budgetUpper != null && price <= budgetUpper) {
-                    double delta = (price - budget) / budgetUpper; // 0..0.2
+                } else if (budgetUpper != null && minPrice <= budgetUpper) {
+                    double delta = (minPrice - budget) / budgetUpper; // 0..0.2
                     score += Math.max(0.2, 1.0 - delta * 2);
                 }
                 double denom = budgetUpper != null ? budgetUpper : Math.max(budget, 1.0);
-                score += Math.max(0, 0.8 - Math.abs(price - budget) / denom);
+                score += Math.max(0, 0.8 - distanceToRange(budget, minPrice, maxPrice) / denom);
             }
         }
         if (area != null && room.getAreaName() != null && normalize(room.getAreaName()).contains(area)) {
@@ -347,6 +352,26 @@ public class ChatbotService {
 
     private String safe(String value) {
         return value == null ? "" : value;
+    }
+
+    private Long effectiveMinPrice(Room room) {
+        return room.getMinPrice() != null ? room.getMinPrice() : room.getPrice();
+    }
+
+    private Long effectiveMaxPrice(Room room) {
+        if (room.getMaxPrice() != null) return room.getMaxPrice();
+        return room.getMinPrice() != null ? room.getMinPrice() : room.getPrice();
+    }
+
+    private double distanceToRange(long target, long min, long max) {
+        if (target < min) return min - target;
+        if (target > max) return target - max;
+        return 0;
+    }
+
+    private String formatBudget(Long value) {
+        if (value == null) return "";
+        return NumberFormat.getNumberInstance(Locale.forLanguageTag("vi-VN")).format(value) + " đ";
     }
 
     /**

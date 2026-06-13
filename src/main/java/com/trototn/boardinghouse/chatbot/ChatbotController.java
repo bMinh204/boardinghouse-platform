@@ -27,6 +27,8 @@ public class ChatbotController {
         Map<String, Object> body = new HashMap<>();
         body.put("reply", reply.reply());
         body.put("budget", reply.budget());
+        body.put("minBudget", reply.minBudget());
+        body.put("maxBudget", reply.maxBudget());
         body.put("area", reply.area());
         body.put("amenity", reply.amenity());
         body.put("suggestions", reply.suggestions());

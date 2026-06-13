@@ -422,11 +422,23 @@ class BrowseView {
         this.refs.chatbotReply.classList.remove("empty-state");
         const suggestions = state.chatbot.suggestions?.length
             ? `<div class="stack-list">${state.chatbot.suggestions.map(r => this.stackRoomItem(r)).join("")}</div>` : "";
+        const minBudget = state.chatbot.minBudget;
+        const maxBudget = state.chatbot.maxBudget;
+        let budgetBadge = "";
+        if (minBudget != null && maxBudget != null) {
+            budgetBadge = `<span class="muted-badge">Khoảng giá: ${formatMoney(minBudget)} - ${formatMoney(maxBudget)}</span>`;
+        } else if (minBudget != null) {
+            budgetBadge = `<span class="muted-badge">Giá từ: ${formatMoney(minBudget)}</span>`;
+        } else if (maxBudget != null) {
+            budgetBadge = `<span class="muted-badge">Giá đến: ${formatMoney(maxBudget)}</span>`;
+        } else if (state.chatbot.budget != null) {
+            budgetBadge = `<span class="muted-badge">Ngân sách: ${formatMoney(state.chatbot.budget)}</span>`;
+        }
         this.refs.chatbotReply.innerHTML = `
             <div class="stack-item">
                 <p><strong>Trả lời:</strong> ${escapeHtml(state.chatbot.reply)}</p>
                 <div class="stack-meta">
-                    ${state.chatbot.budget ? `<span class="muted-badge">Ngân sách: ${formatMoney(state.chatbot.budget)}</span>` : ""}
+                    ${budgetBadge}
                     ${state.chatbot.area ? `<span class="muted-badge">Khu vực: ${escapeHtml(state.chatbot.area)}</span>` : ""}
                     ${state.chatbot.amenity ? `<span class="muted-badge">Tiện nghi: ${escapeHtml(state.chatbot.amenity)}</span>` : ""}
                 </div>
