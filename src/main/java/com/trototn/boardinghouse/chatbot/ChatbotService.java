@@ -32,7 +32,21 @@ public class ChatbotService {
 
     @Transactional(readOnly = true)
     public Responses.ChatbotReply reply(String prompt) {
+        return reply(prompt, null);
+    }
+
+    @Transactional(readOnly = true)
+    public Responses.ChatbotReply reply(String prompt, Long roomId) {
         String normalizedPrompt = normalize(prompt);
+        if (hasAnalysisIntent(normalizedPrompt)) {
+            if (roomId != null && referencesCurrentRoom(normalizedPrompt)) {
+                return analyzeSelectedRoom(prompt, roomId);
+            }
+            Room mentionedRoom = findMentionedRoom(normalizedPrompt);
+            if (mentionedRoom != null) {
+                return analyzeRoom(prompt, mentionedRoom);
+            }
+        }
         BudgetRange budgetRange = extractBudgetRange(normalizedPrompt);
         Long budget = budgetRange.target();
         Long minBudget = budgetRange.min();
@@ -124,6 +138,154 @@ public class ChatbotService {
                 .generateReply(prompt, replyText.toString(), suggestions)
                 .orElse(replyText.toString());
         return new Responses.ChatbotReply(finalReply, budget, minBudget, maxBudget, area, amenity, suggestions);
+    }
+
+    private Responses.ChatbotReply analyzeSelectedRoom(String prompt, Long roomId) {
+        Room room = roomRepository.findById(roomId)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy phòng cần phân tích"));
+        initializeRoom(room);
+        String replyText = buildRoomAnalysis(room);
+        List<Responses.RoomView> suggestions = List.of(MapperUtil.toRoomView(room, false, List.of()));
+        String finalReply = chatbotAiClient
+                .generateReply(prompt, replyText, suggestions)
+                .orElse(replyText);
+        return new Responses.ChatbotReply(finalReply, null, null, null, null, null, suggestions);
+    }
+
+    private Responses.ChatbotReply analyzeRoom(String prompt, Room room) {
+        initializeRoom(room);
+        String replyText = buildRoomAnalysis(room);
+        List<Responses.RoomView> suggestions = List.of(MapperUtil.toRoomView(room, false, List.of()));
+        String finalReply = chatbotAiClient
+                .generateReply(prompt, replyText, suggestions)
+                .orElse(replyText);
+        return new Responses.ChatbotReply(finalReply, null, null, null, null, null, suggestions);
+    }
+
+    private boolean referencesCurrentRoom(String prompt) {
+        return prompt.contains("phong nay")
+                || prompt.contains("tro nay")
+                || prompt.contains("nha tro nay")
+                || prompt.contains("cho nay")
+                || prompt.contains("can nay");
+    }
+
+    private boolean hasAnalysisIntent(String prompt) {
+        return prompt.contains("uu diem")
+                || prompt.contains("diem manh")
+                || prompt.contains("loi the")
+                || prompt.contains("danh gia")
+                || prompt.contains("nhan xet")
+                || prompt.contains("co tot")
+                || prompt.contains("co nen thue")
+                || prompt.contains("phu hop khong")
+                || prompt.contains("the nao");
+    }
+
+    private Room findMentionedRoom(String normalizedPrompt) {
+        if (normalizedPrompt.isBlank()) return null;
+        return roomRepository.findAll().stream()
+                .filter(r -> r.getModerationStatus() == ModerationStatus.APPROVED)
+                .peek(this::initializeRoom)
+                .map(r -> new RoomMention(r, roomMentionScore(r, normalizedPrompt)))
+                .filter(match -> match.score() >= 2.2)
+                .max(Comparator.comparingDouble(RoomMention::score))
+                .map(RoomMention::room)
+                .orElse(null);
+    }
+
+    private double roomMentionScore(Room room, String normalizedPrompt) {
+        double titleScore = textMentionScore(room.getTitle(), normalizedPrompt, 5.0);
+        double propertyScore = textMentionScore(room.getPropertyName(), normalizedPrompt, 3.2);
+        return Math.max(titleScore, propertyScore);
+    }
+
+    private double textMentionScore(String text, String normalizedPrompt, double exactScore) {
+        String normalizedText = normalize(text);
+        if (normalizedText.isBlank()) return 0;
+        if (normalizedPrompt.contains(normalizedText)) {
+            return exactScore + Math.min(1.5, normalizedText.length() / 24.0);
+        }
+
+        Set<String> tokens = mentionTokens(normalizedText);
+        if (tokens.isEmpty()) return 0;
+        long matched = tokens.stream().filter(normalizedPrompt::contains).count();
+        double ratio = matched / (double) tokens.size();
+        if (matched >= 2 && ratio >= 0.6) {
+            return 1.2 + ratio * 2.0 + matched * 0.2;
+        }
+        if (matched >= 3) {
+            return ratio * 2.0;
+        }
+        return 0;
+    }
+
+    private Set<String> mentionTokens(String normalizedText) {
+        Set<String> stopWords = Set.of("phong", "tro", "nha", "can", "cho", "khu", "tang", "loai", "gia");
+        return Arrays.stream(normalizedText.replaceAll("[^a-z0-9\\s]", " ").split("\\s+"))
+                .map(String::trim)
+                .filter(token -> token.length() >= 2)
+                .filter(token -> !stopWords.contains(token))
+                .collect(Collectors.toSet());
+    }
+
+    private String buildRoomAnalysis(Room room) {
+        String title = firstNonBlank(room.getTitle(), room.getPropertyName(), "Phòng này");
+        StringBuilder reply = new StringBuilder();
+        reply.append("Phân tích nhanh ").append(title).append(": ");
+
+        List<String> strengths = new java.util.ArrayList<>();
+        String price = formatRoomPrice(room);
+        if (!price.isBlank()) {
+            strengths.add("giá " + price + ", dễ so sánh với ngân sách");
+        }
+        if (!safe(room.getAreaName()).isBlank()) {
+            strengths.add("khu vực " + room.getAreaName());
+        } else if (!safe(room.getAddress()).isBlank()) {
+            strengths.add("có địa chỉ/vị trí rõ ràng");
+        }
+        if (room.getSize() != null && room.getSize() > 0 && room.getCapacity() != null && room.getCapacity() > 0) {
+            strengths.add("diện tích " + trimNumber(room.getSize()) + " m² cho khoảng " + room.getCapacity() + " người");
+        } else if (room.getSize() != null && room.getSize() > 0) {
+            strengths.add("diện tích " + trimNumber(room.getSize()) + " m²");
+        } else if (room.getCapacity() != null && room.getCapacity() > 0) {
+            strengths.add("sức chứa khoảng " + room.getCapacity() + " người");
+        }
+        if (room.getAmenities() != null && !room.getAmenities().isEmpty()) {
+            strengths.add("có tiện nghi: " + room.getAmenities().stream()
+                    .filter(item -> item != null && !item.isBlank())
+                    .limit(4)
+                    .collect(Collectors.joining(", ")));
+        }
+        if (room.getAvailableRooms() != null && room.getTotalRooms() != null && room.getTotalRooms() > 0) {
+            strengths.add("thông tin số phòng rõ: " + room.getAvailableRooms() + "/" + room.getTotalRooms() + " phòng trống");
+        } else if (room.getStatus() == RoomStatus.AVAILABLE) {
+            strengths.add("đang ở trạng thái còn trống");
+        }
+        if (room.getSurveyCount() != null && room.getSurveyCount() > 0 && room.getSurveyAverage() != null) {
+            strengths.add("đã có đánh giá trung bình " + trimNumber(room.getSurveyAverage()) + "/5 từ người dùng");
+        }
+        if (!safe(room.getDescription()).isBlank()) {
+            String description = room.getDescription().trim();
+            strengths.add("mô tả nổi bật: " + truncate(description, 90));
+        }
+
+        if (strengths.isEmpty()) {
+            reply.append("phòng này chưa có nhiều dữ liệu để đánh giá sâu. Nên bổ sung ảnh, tiện nghi, giá, diện tích và trạng thái phòng để chatbot tư vấn tốt hơn.");
+            return reply.toString();
+        }
+
+        for (int i = 0; i < strengths.size(); i++) {
+            if (i > 0) reply.append("; ");
+            reply.append(i + 1).append(") ").append(strengths.get(i));
+        }
+        reply.append(". ");
+        if (room.getStatus() == RoomStatus.AVAILABLE || (room.getAvailableRooms() != null && room.getAvailableRooms() > 0)) {
+            reply.append("Nhìn chung phòng này đáng cân nhắc nếu ngân sách và vị trí phù hợp với nhu cầu của bạn.");
+        } else {
+            reply.append("Tuy vậy cần kiểm tra lại trạng thái còn phòng trước khi liên hệ, vì hiện thông tin đang cho thấy phòng có thể chưa còn trống.");
+        }
+        return reply.toString();
     }
 
     private BudgetRange extractBudgetRange(String prompt) {
@@ -251,7 +413,8 @@ public class ChatbotService {
                 "tim", "phong", "tro", "nha", "goi", "y", "can", "toi", "minh", "cho",
                 "gan", "co", "gia", "re", "duoi", "tren", "tu", "den", "khong", "qua",
                 "it", "nhat", "thieu", "da", "nguoi", "tr", "trieu", "ngan", "sach",
-                "phu", "hop", "va", "hoac", "o", "thue"
+                "phu", "hop", "va", "hoac", "o", "thue", "uu", "diem", "manh",
+                "loi", "the", "danh", "nhan", "xet", "tot", "nen", "nao"
         );
         String cleaned = prompt
                 .replaceAll("\\d+(?:[.,]\\d+)?", " ")
@@ -374,6 +537,32 @@ public class ChatbotService {
         return NumberFormat.getNumberInstance(Locale.forLanguageTag("vi-VN")).format(value) + " đ";
     }
 
+    private String formatRoomPrice(Room room) {
+        Long min = effectiveMinPrice(room);
+        Long max = effectiveMaxPrice(room);
+        if (min == null || min <= 0) return "";
+        if (max == null || max <= 0 || max.equals(min)) return formatBudget(min);
+        return formatBudget(min) + " - " + formatBudget(max);
+    }
+
+    private String firstNonBlank(String... values) {
+        for (String value : values) {
+            if (value != null && !value.isBlank()) return value.trim();
+        }
+        return "";
+    }
+
+    private String trimNumber(Double value) {
+        if (value == null) return "";
+        if (Math.floor(value) == value) return String.valueOf(value.longValue());
+        return String.format(Locale.US, "%.1f", value);
+    }
+
+    private String truncate(String value, int maxLength) {
+        if (value == null || value.length() <= maxLength) return value;
+        return value.substring(0, maxLength - 3).trim() + "...";
+    }
+
     /**
      * Ensure lazily-loaded fields are initialized while session is open.
      */
@@ -399,6 +588,8 @@ public class ChatbotService {
                 .replace('Đ', 'D')
                 .toLowerCase(Locale.ROOT);
     }
+
+    private record RoomMention(Room room, double score) {}
 
     private record BudgetRange(Long min, Long max, Long target) {}
 }

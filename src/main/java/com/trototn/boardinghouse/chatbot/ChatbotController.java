@@ -23,7 +23,7 @@ public class ChatbotController {
     @PostMapping
     public Map<String, Object> ask(@RequestBody ChatbotRequest request) {
         String prompt = request.prompt() == null ? "" : request.prompt();
-        Responses.ChatbotReply reply = chatbotService.reply(prompt);
+        Responses.ChatbotReply reply = chatbotService.reply(prompt, request.roomId());
         Map<String, Object> body = new HashMap<>();
         body.put("reply", reply.reply());
         body.put("budget", reply.budget());
@@ -35,5 +35,5 @@ public class ChatbotController {
         return body;
     }
 
-    public record ChatbotRequest(@NotBlank String prompt) {}
+    public record ChatbotRequest(@NotBlank String prompt, Long roomId) {}
 }

@@ -415,11 +415,12 @@ class BrowseView {
 
     renderChatbot(state) {
         if (!state.chatbot) {
-            this.refs.chatbotReply.innerHTML = `Chatbot sẽ phân tích ngân sách, khu vực và tiện nghi để gợi ý phòng.`;
-            this.refs.chatbotReply.classList.add("empty-state");
+            this.refs.chatbotReply.innerHTML = "";
+            this.refs.chatbotReply.classList.add("hidden");
             return;
         }
         this.refs.chatbotReply.classList.remove("empty-state");
+        this.refs.chatbotReply.classList.remove("hidden");
         const suggestions = state.chatbot.suggestions?.length
             ? `<div class="stack-list">${state.chatbot.suggestions.map(r => this.stackRoomItem(r)).join("")}</div>` : "";
         const minBudget = state.chatbot.minBudget;
@@ -1153,6 +1154,9 @@ class BrowseController {
     async onAskChatbot(event) {
         event.preventDefault();
         const payload = Object.fromEntries(new FormData(event.target).entries());
+        if (this.model.state.selectedRoom?.id) {
+            payload.roomId = this.model.state.selectedRoom.id;
+        }
         try {
             this.model.state.chatbot = await this.model.api("/api/chatbot", jsonOptions(payload));
             this.view.renderChatbot(this.model.state);
